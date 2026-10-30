@@ -14,8 +14,9 @@ export const isEmail = (email: unknown): email is string =>
   typeof email === "string" && email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
 
 /** Only same-site relative paths are allowed as post-login destinations. */
+// OAuth /authorize URLs carry long encoded parameters, hence the generous length.
 export const safeReturnTo = (value: unknown): string | null =>
-  typeof value === "string" && /^\/(?!\/)[\w\-./?=&%#]*$/.test(value) && value.length <= 300 ? value : null;
+  typeof value === "string" && /^\/(?![\/\\])[\w\-./?=&%#~:+]*$/.test(value) && value.length <= 2000 ? value : null;
 
 export const createLoginToken = async (
   env: Env,

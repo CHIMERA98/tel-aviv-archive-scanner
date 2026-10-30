@@ -1,5 +1,9 @@
+import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
+
 export interface Env {
   DB: D1Database;
+  OAUTH_KV: KVNamespace;
+  OAUTH_PROVIDER: OAuthHelpers;
   FILES: R2Bucket;
   ASSETS: Fetcher;
   EMAIL?: SendEmail;
@@ -21,6 +25,9 @@ export interface Env {
   SCANNER_HMAC_KEY: string;
   SESSION_KEY: string;
   GCP_SA_KEY: string; // service account JSON
+
+  /** Local development only (.dev.vars): skips Turnstile and logs scanner starts instead of calling Google. */
+  DEV_MODE?: string;
 }
 
 export type AppContext = { Bindings: Env; Variables: { body?: ArrayBuffer } };

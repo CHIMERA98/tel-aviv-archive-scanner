@@ -7,6 +7,7 @@ export const verifyTurnstile = async (
   action: string,
   remoteIp: string | null,
 ): Promise<boolean> => {
+  if (env.DEV_MODE === "1") return true;
   const hostnames = new Set(
     (env.TURNSTILE_HOSTNAMES ?? "")
       .split(",")

@@ -10,6 +10,8 @@ export default defineConfig(async () => {
         miniflare: {
           bindings: {
             TEST_MIGRATIONS: migrations,
+            DEV_MODE: "0", // .dev.vars may turn it on for local runs; tests exercise the real checks
+
             PUBLIC_URL: "https://scanner.test",
             LOOKUP_URL: "https://lookup.test",
             GCP_PROJECT: "test-project",

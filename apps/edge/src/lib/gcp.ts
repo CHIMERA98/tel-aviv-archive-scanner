@@ -55,6 +55,10 @@ export const accessToken = async (env: Env): Promise<string> => {
 
 /** Start one execution of the Cloud Run scanner job for a scan. */
 export const runScannerJob = async (env: Env, scanId: string): Promise<string> => {
+  if (env.DEV_MODE === "1") {
+    console.log(`[dev] start the scanner by hand: SCAN_ID=${scanId} python -m scanner.job`);
+    return "dev";
+  }
   const url =
     `https://run.googleapis.com/v2/projects/${env.GCP_PROJECT}/locations/${env.GCP_REGION}` +
     `/jobs/${env.GCP_JOB}:run`;

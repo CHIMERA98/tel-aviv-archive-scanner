@@ -113,6 +113,9 @@ def match_streets(query: str, streets: list[Street], limit: int = 5) -> list[Str
         if best >= 0.6:
             scored.append((best, street))
     scored.sort(key=lambda item: -item[0])
+    # With a clear hit, drop look-alikes (e.g. 'פלורנטין' for 'לבונטין').
+    if scored and scored[0][0] >= 0.9:
+        scored = [item for item in scored if item[0] >= 0.75]
     return [street for _, street in scored[:limit]]
 
 

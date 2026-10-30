@@ -31,6 +31,12 @@ export const api = new Hono<AppContext>();
 const locale = (value: unknown): Locale => (value === "en" ? "en" : "he");
 const clientIp = (headers: Headers) => headers.get("cf-connecting-ip");
 
+api.get("/config", (c) =>
+  c.json({ turnstileSiteKey: c.env.TURNSTILE_SITE_KEY, publicUrl: c.env.PUBLIC_URL, devMode: c.env.DEV_MODE === "1" }, 200, {
+    "Cache-Control": "public, max-age=300",
+  }),
+);
+
 // ---------- auth ----------
 
 api.post("/auth/request", async (c) => {
@@ -65,26 +71,37 @@ const lookupMatch = z.object({
   building: z.object({ building_id: z.number().int().positive() }).passthrough().nullable(),
 });
 
-api.get("/lookup", async (c) => {
-  const q = (c.req.query("q") ?? "").trim().slice(0, 120);
-  if (q.length < 3) return c.json({ matches: [] });
+export interface LookupMatch {
+  label_he: string;
+  label_en: string;
+  building: Selection["building"] & { year_built?: number; floors?: number };
+  selection: string;
+}
+
+/** Address -> buildings through the Tel Aviv lookup service, cached for a day. Shared by the website and MCP. */
+export const lookupMatches = async (
+  env: AppContext["Bindings"],
+  ctx: ExecutionContext,
+  query: string,
+): Promise<{ matches: LookupMatch[] } | { error: "lookup_unavailable" }> => {
+  const q = query.trim().slice(0, 120);
+  if (q.length < 3) return { matches: [] };
 
   const cache = caches.default;
-  const cacheKey = new Request(`${c.env.PUBLIC_URL}/__lookup?q=${encodeURIComponent(q)}`);
+  const cacheKey = new Request(`${env.PUBLIC_URL}/__lookup?q=${encodeURIComponent(q)}`);
   let data = (await (await cache.match(cacheKey))?.json()) as { matches: unknown[] } | undefined;
   if (!data) {
     const path = `/lookup?q=${encodeURIComponent(q)}`;
-    const response = await fetch(c.env.LOOKUP_URL + path, {
-      headers: { "X-Scanner-Signature": await signRequest(c.env.SCANNER_HMAC_KEY, "GET", path, "") },
-    });
-    if (!response.ok) return c.json({ error: "lookup_unavailable" }, 502);
+    const response = await fetch(env.LOOKUP_URL + path, {
+      headers: { "X-Scanner-Signature": await signRequest(env.SCANNER_HMAC_KEY, "GET", path, "") },
+      signal: AbortSignal.timeout(25_000),
+    }).catch(() => null);
+    if (!response?.ok) return { error: "lookup_unavailable" };
     data = (await response.json()) as { matches: unknown[] };
-    c.executionCtx.waitUntil(
-      cache.put(cacheKey, new Response(JSON.stringify(data), { headers: { "Cache-Control": "max-age=86400" } })),
-    );
+    ctx.waitUntil(cache.put(cacheKey, new Response(JSON.stringify(data), { headers: { "Cache-Control": "max-age=86400" } })));
   }
 
-  const matches = [];
+  const matches: LookupMatch[] = [];
   for (const raw of data.matches ?? []) {
     const parsed = lookupMatch.safeParse(raw);
     if (!parsed.success || !parsed.data.building) continue;
@@ -93,10 +110,15 @@ api.get("/lookup", async (c) => {
       label_he: selection.address.label_he,
       label_en: selection.address.label_en,
       building: selection.building,
-      selection: await sealJson(c.env.SESSION_KEY, { ...selection, issued: now() }),
+      selection: await sealJson(env.SESSION_KEY, { ...selection, issued: now() }),
     });
   }
-  return c.json({ matches });
+  return { matches };
+};
+
+api.get("/lookup", async (c) => {
+  const result = await lookupMatches(c.env, c.executionCtx as ExecutionContext, c.req.query("q") ?? "");
+  return "error" in result ? c.json(result, 502) : c.json(result);
 });
 
 // ---------- scans ----------

@@ -15,6 +15,8 @@
     { "binding": "DB", "database_name": "tlv-archive-scanner", "database_id": "635aed73-8e90-4286-8bb8-5bedaf913265" }
   ],
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "tlv-archive-scanner-results" }],
+  // OAuth clients, grants and tokens for AI apps connecting to /mcp.
+  "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "50ad2d433e494dae9163aee6c7fff6c8" }],
 
   // Every minute: start queued scans, retry stalled ones, expire old results.
   "triggers": { "crons": ["* * * * *"] },
