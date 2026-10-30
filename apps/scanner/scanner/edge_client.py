@@ -13,8 +13,8 @@ from urllib.parse import quote
 
 import httpx
 
-SINGLE_PUT_LIMIT = 50 * 1024 * 1024
-PART_SIZE = 40 * 1024 * 1024
+SINGLE_PUT_LIMIT = 20 * 1024 * 1024  # the edge buffers each request to verify its signature
+PART_SIZE = 20 * 1024 * 1024
 UPLOAD_CONCURRENCY = 6
 
 

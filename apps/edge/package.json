@@ -1,0 +1,25 @@
+{
+  "name": "tlv-archive-scanner-edge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote"
+  },
+  "dependencies": {
+    "hono": "^4.13.14",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.11",
+    "@cloudflare/workers-types": "^5.20261030.1",
+    "@vitest/runner": "^4.1.0",
+    "@vitest/snapshot": "^4.1.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.0"
+  }
+}

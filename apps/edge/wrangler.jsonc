@@ -1,0 +1,38 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tlv-archive-scanner",
+  "account_id": "fdb8ceefcc92314107ee74e4985b6d56",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "observability": { "enabled": true },
+
+  // The website (built by apps/web) is served from here; /api, /files, /internal and /mcp run first.
+  "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": true, "not_found_handling": "404-page" },
+
+  "d1_databases": [
+    { "binding": "DB", "database_name": "tlv-archive-scanner", "database_id": "635aed73-8e90-4286-8bb8-5bedaf913265" }
+  ],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "tlv-archive-scanner-results" }],
+
+  // Every minute: start queued scans, retry stalled ones, expire old results.
+  "triggers": { "crons": ["* * * * *"] },
+
+  "vars": {
+    "PUBLIC_URL": "https://tlv-archive-scanner.tlv-archive-scanner.workers.dev",
+    "EMAIL_FROM": "scanner@tel-aviv-archive-scanner.work",
+    "TURNSTILE_SITE_KEY": "0x4AAAAAAFrdJJd253DalHLC",
+    "TURNSTILE_HOSTNAMES": "tel-aviv-archive-scanner.work",
+    "LOOKUP_URL": "",
+    "GCP_PROJECT": "",
+    "GCP_REGION": "me-west1",
+    "GCP_JOB": "scanner",
+    "MAX_RUNNING": "2",
+    "WEEKLY_QUOTA": "3",
+    "DAILY_CAP": "30",
+    "RETENTION_HOURS": "24"
+  }
+  // Secrets (wrangler secret put): TURNSTILE_SECRET, SCANNER_HMAC_KEY, SESSION_KEY, GCP_SA_KEY.
+  // Email: add "send_email": [{ "name": "EMAIL" }] once Email Sending is enabled for the domain.
+}
