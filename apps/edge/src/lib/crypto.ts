@@ -39,7 +39,8 @@ export const safeEqual = (a: string, b: string): boolean => {
 
 /**
  * Scanner <-> edge signature (mirrors scanner/edge_client.py):
- * `t=<unix>,v1=hex(HMAC-SHA256(key, "<t>.<METHOD>.<path+query>.<sha256(body)>"))`.
+ * `t=<unix>,v1=hex(HMAC-SHA256(key, "<t>.<METHOD>.<path+query>.<sha256(body)>"))`,
+ * with the body digest also sent as `X-Content-SHA256`.
  */
 export const signRequest = async (
   secret: string,
@@ -52,19 +53,20 @@ export const signRequest = async (
   return `t=${t},v1=${await hmacHex(secret, `${t}.${method.toUpperCase()}.${pathWithQuery}.${digest}`)}`;
 };
 
+/** Checks a signature against the body digest the caller declared (X-Content-SHA256); see internal.ts. */
 export const verifyRequest = async (
   secret: string,
   header: string | null | undefined,
   method: string,
   pathWithQuery: string,
-  body: ArrayBuffer,
+  bodyDigest: string,
   maxSkewS = 300,
 ): Promise<boolean> => {
-  if (!secret || !header) return false;
+  if (!secret || !header || !/^[0-9a-f]{64}$/.test(bodyDigest)) return false;
   const parts = Object.fromEntries(header.split(",").map((p) => p.split("=", 2) as [string, string]));
   const t = Number(parts.t);
   if (!Number.isInteger(t) || !parts.v1 || Math.abs(Date.now() / 1000 - t) > maxSkewS) return false;
-  const expected = (await signRequest(secret, method, pathWithQuery, body, t)).split("v1=")[1];
+  const expected = await hmacHex(secret, `${t}.${method.toUpperCase()}.${pathWithQuery}.${bodyDigest}`);
   return safeEqual(expected, parts.v1);
 };
 

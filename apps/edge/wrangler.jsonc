@@ -23,11 +23,11 @@
 
   "vars": {
     "PUBLIC_URL": "https://tlv-archive-scanner.tlv-archive-scanner.workers.dev",
-    "EMAIL_FROM": "scanner@tel-aviv-archive-scanner.work",
+    "EMAIL_FROM": "Archive Scanner <scanner@tel-aviv-archive-scanner.work>",
     "TURNSTILE_SITE_KEY": "0x4AAAAAAFrdJJd253DalHLC",
     "TURNSTILE_HOSTNAMES": "tel-aviv-archive-scanner.work",
-    "LOOKUP_URL": "",
-    "GCP_PROJECT": "",
+    "LOOKUP_URL": "https://lookup-fzxgzn6xxq-zf.a.run.app",
+    "GCP_PROJECT": "tlv-archive-scanner",
     "GCP_REGION": "me-west1",
     "GCP_JOB": "scanner",
     "MAX_RUNNING": "2",
@@ -35,6 +35,7 @@
     "DAILY_CAP": "30",
     "RETENTION_HOURS": "24"
   }
-  // Secrets (wrangler secret put): TURNSTILE_SECRET, SCANNER_HMAC_KEY, SESSION_KEY, GCP_SA_KEY.
-  // Email: add "send_email": [{ "name": "EMAIL" }] once Email Sending is enabled for the domain.
+  // Secrets (wrangler secret put): TURNSTILE_SECRET, SCANNER_HMAC_KEY, SESSION_KEY, GCP_SA_KEY, RESEND_API_KEY.
+  // Email goes through Resend's free tier; Cloudflare Email Sending (paid) works instead via
+  // "send_email": [{ "name": "EMAIL" }] with RESEND_API_KEY unset.
 }

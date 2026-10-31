@@ -1,0 +1,2 @@
+# Files sent to Cloud Build (gcloud ignores .dockerignore)
+#!include:.dockerignore

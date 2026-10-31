@@ -25,6 +25,7 @@ export interface Env {
   SCANNER_HMAC_KEY: string;
   SESSION_KEY: string;
   GCP_SA_KEY: string; // service account JSON
+  RESEND_API_KEY?: string; // sign-in and "scan ready" emails (free tier); Cloudflare's EMAIL binding is the alternative
 
   /** Local development only (.dev.vars): skips Turnstile and logs scanner starts instead of calling Google. */
   DEV_MODE?: string;

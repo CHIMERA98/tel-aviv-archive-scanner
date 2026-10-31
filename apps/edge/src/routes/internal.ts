@@ -1,7 +1,7 @@
 import { type Context, Hono, type MiddlewareHandler } from "hono";
 import type { AppContext } from "../env";
 import { now } from "../env";
-import { verifyRequest } from "../lib/crypto";
+import { sha256Hex, verifyRequest } from "../lib/crypto";
 import { dispatch, failScan, retentionSeconds, type ScanRow } from "../lib/scans";
 import { notifyScanReady } from "./api";
 
@@ -11,19 +11,25 @@ export const internal = new Hono<AppContext>();
 const ACTIVE = ["starting", "running"];
 const FILE_PATH = /^[\w\-./]{1,200}$/;
 
-// The body is read once here: the signature covers its hash, and handlers reuse the buffer.
+// The signature covers the declared body digest. Small JSON bodies are read once and checked against it here;
+// file uploads (PUT) are streamed to R2 unread, because hashing tens of MB would blow the Worker's CPU budget.
+// R2 verifies single uploads against the digest itself; multipart parts rely on TLS.
 const signed: MiddlewareHandler<AppContext> = async (c, next) => {
   const url = new URL(c.req.url);
-  const body = await c.req.raw.arrayBuffer();
+  const digest = c.req.header("x-content-sha256") ?? "";
   const ok = await verifyRequest(
     c.env.SCANNER_HMAC_KEY,
     c.req.header("x-scanner-signature"),
     c.req.method,
     url.pathname + url.search,
-    body,
+    digest,
   );
   if (!ok) return c.json({ error: "unauthorized" }, 401);
-  c.set("body", body);
+  if (!(c.req.method === "PUT" && url.pathname.includes("/files/"))) {
+    const body = await c.req.raw.arrayBuffer();
+    if (body.byteLength > 1024 * 1024 || (await sha256Hex(body)) !== digest) return c.json({ error: "bad_body" }, 400);
+    c.set("body", body);
+  }
   await next();
 };
 internal.use("/scans/:id", signed);
@@ -65,14 +71,21 @@ internal.on(["PUT", "POST"], "/scans/:id/files/*", async (c) => {
   const uploadId = query.get("upload_id");
 
   if (c.req.method === "PUT" && !uploadId) {
-    await c.env.FILES.put(key, bodyOf(c), { httpMetadata: { contentType: contentType(rel) } });
+    const body = c.req.raw.body;
+    if (!body) return c.json({ error: "empty" }, 400);
+    await c.env.FILES.put(key, body, {
+      sha256: c.req.header("x-content-sha256"),
+      httpMetadata: { contentType: contentType(rel) },
+    });
   } else if (c.req.method === "POST" && query.has("uploads")) {
     const upload = await c.env.FILES.createMultipartUpload(key, { httpMetadata: { contentType: contentType(rel) } });
     return c.json({ upload_id: upload.uploadId });
   } else if (c.req.method === "PUT" && uploadId) {
     const part = Number(query.get("part"));
     if (!Number.isInteger(part) || part < 1 || part > 10000) return c.json({ error: "bad_part" }, 400);
-    const uploaded = await c.env.FILES.resumeMultipartUpload(key, uploadId).uploadPart(part, bodyOf(c));
+    const body = c.req.raw.body;
+    if (!body) return c.json({ error: "empty" }, 400);
+    const uploaded = await c.env.FILES.resumeMultipartUpload(key, uploadId).uploadPart(part, body);
     return c.json({ etag: uploaded.etag });
   } else if (c.req.method === "POST" && uploadId && query.has("complete")) {
     const { parts } = jsonOf<{ parts: { part: number; etag: string }[] }>(c);

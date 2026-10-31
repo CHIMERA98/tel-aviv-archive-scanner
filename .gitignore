@@ -1,13 +1,13 @@
 # Python
 __pycache__/
 *.py[cod]
-.venv/
+.venv
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
 
 # Node / Cloudflare
-node_modules/
+node_modules
 .wrangler/
 dist/
 .dev.vars
@@ -22,3 +22,6 @@ scans/
 
 # OS
 .DS_Store
+
+# iCloud-excluded copies of installed packages (the plain names are symlinks)
+*.nosync

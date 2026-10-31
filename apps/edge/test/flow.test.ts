@@ -1,7 +1,7 @@
 import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import worker from "../src/index";
-import { signRequest } from "../src/lib/crypto";
+import { sha256Hex, signRequest } from "../src/lib/crypto";
 import type { Env } from "../src/env";
 
 let testEnv: Env;
@@ -57,7 +57,10 @@ const signedCall = async (method: string, path: string, body: string | Uint8Arra
   call(path, {
     method,
     body: method === "GET" ? undefined : body,
-    headers: { "X-Scanner-Signature": await signRequest("hmac-key", method, path, body) },
+    headers: {
+      "X-Scanner-Signature": await signRequest("hmac-key", method, path, body),
+      "X-Content-SHA256": await sha256Hex(body),
+    },
   });
 
 const signIn = async (email: string): Promise<string> => {

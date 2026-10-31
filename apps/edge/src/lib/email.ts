@@ -48,11 +48,20 @@ export const scanReadyMessage = (locale: Locale, to: string, label: string, link
         html: layout("en", `<p>The scan of <b>${label}</b> is ready.</p>${button(link, "View results")}<p style="color:#666;font-size:14px">Files are deleted after 24 hours.</p>`),
       };
 
-/** Sends through Cloudflare Email Sending when the binding exists; otherwise logs (local development). */
+/** Sends through Resend when its key is set, else Cloudflare Email Sending; with neither, logs (local development). */
 export const sendEmail = async (env: Env, message: Message): Promise<void> => {
-  if (!env.EMAIL) {
-    console.log(`[email disabled] to=${message.to} subject=${message.subject}\n${message.text}`);
+  if (env.RESEND_API_KEY) {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from: env.EMAIL_FROM, ...message }),
+    });
+    if (!response.ok) throw new Error(`Resend failed: ${response.status} ${await response.text()}`);
     return;
   }
-  await env.EMAIL.send({ from: env.EMAIL_FROM, ...message });
+  if (env.EMAIL) {
+    await env.EMAIL.send({ from: env.EMAIL_FROM, ...message });
+    return;
+  }
+  console.log(`[email disabled] to=${message.to} subject=${message.subject}\n${message.text}`);
 };
