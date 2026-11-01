@@ -32,6 +32,13 @@ app.use("*", async (c, next) => {
   c.res = res;
 });
 
+// www.<domain> is attached to this Worker only to redirect to the canonical address.
+app.use("*", async (c, next) => {
+  const url = new URL(c.req.url);
+  if (!url.hostname.startsWith("www.")) return next();
+  return c.redirect(`${c.env.PUBLIC_URL}${url.pathname}${url.search}`, 301);
+});
+
 app.get("/api/health", (c) => c.json({ ok: true }));
 app.route("/api", api);
 app.route("/internal", internal);

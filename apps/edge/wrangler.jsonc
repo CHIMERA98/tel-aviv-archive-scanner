@@ -5,7 +5,12 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
+  // workers.dev stays on: the scanner job reports to it (EDGE_URL) independently of the public domain.
   "workers_dev": true,
+  "routes": [
+    { "pattern": "tel-aviv-archive-scanner.work", "custom_domain": true },
+    { "pattern": "www.tel-aviv-archive-scanner.work", "custom_domain": true }
+  ],
   "observability": { "enabled": true },
 
   // The website (built by apps/web) is served from here; /api, /files, /internal and /mcp run first.
@@ -22,7 +27,7 @@
   "triggers": { "crons": ["* * * * *"] },
 
   "vars": {
-    "PUBLIC_URL": "https://tlv-archive-scanner.tlv-archive-scanner.workers.dev",
+    "PUBLIC_URL": "https://tel-aviv-archive-scanner.work",
     "EMAIL_FROM": "Archive Scanner <scanner@tel-aviv-archive-scanner.work>",
     "TURNSTILE_SITE_KEY": "0x4AAAAAAFrdJJd253DalHLC",
     "TURNSTILE_HOSTNAMES": "tel-aviv-archive-scanner.work",
