@@ -11,7 +11,7 @@ export interface McpProps {
   email: string;
 }
 
-interface ManifestDocument {
+export interface ManifestDocument {
   doc_id: string;
   source: "archive" | "plan" | "map";
   title: string;
@@ -24,11 +24,12 @@ interface ManifestDocument {
   plan_status: string | null;
   pages: number;
   page_images: string[];
+  file?: string | null;
   original_url: string | null;
   note: string | null;
 }
 
-interface Manifest {
+export interface Manifest {
   scan_id: string;
   address: { label_he: string; gush?: number; helka?: number };
   building: { building_id: number; year_built?: number; floors?: number };
@@ -46,7 +47,7 @@ const fail = (message: string) => ({ ...text(message), isError: true });
 const loadScan = (env: Env, id: string) => env.DB.prepare("SELECT * FROM scans WHERE id = ?").bind(id).first<ScanRow>();
 
 /** The manifest of a finished scan, following a free reuse to the scan that holds the files. */
-const loadManifest = async (env: Env, scanId: string): Promise<{ manifest: Manifest; sourceId: string } | string> => {
+export const loadManifest = async (env: Env, scanId: string): Promise<{ manifest: Manifest; sourceId: string } | string> => {
   const row = await loadScan(env, scanId);
   if (!row) return "Unknown scan_id.";
   const scan = await publicScan({ env }, row);

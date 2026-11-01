@@ -37,10 +37,12 @@ export const STRINGS = {
     leaveHint: "אפשר לסגור את הדף. נשלח אימייל כשהסריקה מוכנה.",
     ready: "הסריקה מוכנה",
     analyzeTitle: "ניתוח עם הבינה המלאכותית שלכם",
-    analyzeHint: "הכפתורים פותחים שיחה עם הוראות מוכנות. ה-AI שלכם קורא את המסמכים דרך המחבר.",
+    analyzeHint: "פותח שיחה עם רשימת המסמכים — בלי התקנה ובלי הרשמה.",
     analyzeClaude: "ניתוח ב-Claude",
     analyzeChatGPT: "ניתוח ב-ChatGPT",
-    connectLink: "חיבור חד-פעמי של המחבר",
+    readPages: "רוצים שה-AI יקרא גם את הדפים הסרוקים?",
+    connectClaude: "חיבור ל-Claude בלחיצה",
+    otherApps: "אפליקציות אחרות",
     downloadsTitle: "הורדות",
     zip: "כל הקבצים (ZIP)",
     index: "רשימת מסמכים (CSV)",
@@ -67,8 +69,8 @@ export const STRINGS = {
     inLine: (n) => `בתור · ${n}`,
     docsCount: (n) => `${n} מסמכים`,
     filesDeleted: "הקבצים נמחקו",
-    aiPrompt: (id, label) =>
-      `השתמש/י במחבר "Tel Aviv Archive Scanner" כדי לנתח את הסריקה ${id} (${label}). התחל/י ב-list_documents, פתח/י רק מסמכים רלוונטיים עם get_document_pages, וכתוב/כתבי היסטוריה כרונולוגית של הבניין עם מספרי מסמכים ותאריכים. אם המחבר לא מותקן: https://tel-aviv-archive-scanner.work/connect`,
+    aiPrompt: (url, label) =>
+      `קרא/י את ארכיון הבניין ${label} בתל אביב-יפו בכתובת ${url} ופעל/י לפי ההוראות שבעמוד: היסטוריה כרונולוגית של הבניין, עם מספרי מסמכים ותאריכים.`,
   },
   en: {
     brand: "Archive Scanner",
@@ -107,10 +109,12 @@ export const STRINGS = {
     leaveHint: "You can close this page. We'll email you when the scan is ready.",
     ready: "Your scan is ready",
     analyzeTitle: "Analyze with your own AI",
-    analyzeHint: "These open a chat with ready-made instructions. Your AI reads the documents through the connector.",
+    analyzeHint: "Opens a chat with the document list. Nothing to install.",
     analyzeClaude: "Analyze in Claude",
     analyzeChatGPT: "Analyze in ChatGPT",
-    connectLink: "One-time connector setup",
+    readPages: "Want the AI to read the scanned pages too?",
+    connectClaude: "Connect to Claude in one click",
+    otherApps: "Other apps",
     downloadsTitle: "Downloads",
     zip: "All files (ZIP)",
     index: "Document list (CSV)",
@@ -137,7 +141,7 @@ export const STRINGS = {
     inLine: (n) => `In line · ${n}`,
     docsCount: (n) => `${n} documents`,
     filesDeleted: "Files deleted",
-    aiPrompt: (id, label) =>
-      `Use the "Tel Aviv Archive Scanner" connector to analyze scan ${id} (${label}). Start with list_documents, open only the relevant documents with get_document_pages, and write a chronological history of the building citing document IDs and dates. If the connector isn't installed: https://tel-aviv-archive-scanner.work/en/connect`,
+    aiPrompt: (url, label) =>
+      `Read the building archive of ${label} (Tel Aviv-Yafo) at ${url} and follow the instructions on that page: a chronological history of the building, citing document IDs and dates.`,
   },
 };

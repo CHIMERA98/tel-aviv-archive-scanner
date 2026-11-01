@@ -149,6 +149,10 @@ ul.list button.item:hover { background: var(--soft); }
 .notice { padding: 12px 14px; background: var(--soft); border-radius: var(--radius); margin: 16px 0; font-size: 15px; }
 .notice.bad { color: var(--bad); }
 details { margin: 16px 0; font-size: 14px; color: var(--muted); text-align: start; }
+details summary { cursor: pointer; color: var(--fg); }
+.view > .button { margin: 16px 0 8px; }
+button.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+.small-button { padding: 6px 12px; font-size: 13px; }
 code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
 pre { background: var(--soft); padding: 12px; border-radius: var(--radius); overflow-x: auto; white-space: pre-wrap; word-break: break-all; direction: ltr; }
 .cf-turnstile-slot { display: flex; justify-content: center; }

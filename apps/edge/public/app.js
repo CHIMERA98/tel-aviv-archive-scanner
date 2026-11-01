@@ -381,16 +381,25 @@ const stagesList = (stages = {}) =>
         h("span", { class: "state" }, s.detail && s.status !== "running" ? s.detail : t.state[s.status] || s.status));
     }));
 
+// Claude's documented install link: opens "Add custom connector" prefilled; the user confirms and signs in.
+const claudeInstallUrl = () =>
+  "https://claude.ai/customize/connectors?modal=add-custom-connector" +
+  `&connectorName=${encodeURIComponent("Tel Aviv Archive Scanner")}&connectorUrl=${encodeURIComponent(`${location.origin}/mcp`)}`;
+
 const results = (scan, name) => {
   const file = (path) => `${scan.files_base}${path}`;
-  const prompt = encodeURIComponent(t.aiPrompt(scan.id, name));
+  // The prompt points at the scan's plain AI page, so it works without installing anything.
+  const prompt = encodeURIComponent(t.aiPrompt(`${location.origin}${base}/scan/${scan.id}/ai`, name));
   const counts = scan.summary?.counts;
   const items = [
     counts ? h("p", {}, t.counts(counts)) : h("p", {}, t.ready),
     h("div", { class: "actions" },
       h("a", { class: "button", href: `https://claude.ai/new?q=${prompt}`, target: "_blank", rel: "noopener" }, t.analyzeClaude),
       h("a", { class: "button", href: `https://chatgpt.com/?q=${prompt}`, target: "_blank", rel: "noopener" }, t.analyzeChatGPT)),
-    h("p", { class: "muted small" }, t.analyzeHint, " ", h("a", { href: `${base}/connect`, onclick: (e) => { e.preventDefault(); go(connectStep()); } }, t.connectLink)),
+    h("p", { class: "muted small" }, t.analyzeHint),
+    h("p", { class: "muted small" }, t.readPages, " ",
+      h("a", { href: claudeInstallUrl(), target: "_blank", rel: "noopener" }, t.connectClaude), " · ",
+      h("a", { href: `${base}/connect`, onclick: (e) => { e.preventDefault(); go(connectStep()); } }, t.otherApps)),
     h("div", { class: "actions quiet" },
       h("a", { href: file("bundle.zip") }, t.zip),
       h("a", { href: file("index.csv") }, t.index),
@@ -431,6 +440,18 @@ const myScansStep = () => {
   };
 };
 
+const copyButton = (text) => {
+  const button = h("button", { class: "ghost small-button", type: "button", onclick: async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      button.textContent = lang === "he" ? "הועתק" : "Copied";
+    } catch {
+      button.textContent = text; // clipboard blocked: show the text to copy by hand
+    }
+  } }, lang === "he" ? "העתקת הכתובת" : "Copy address");
+  return button;
+};
+
 const connectStep = () => {
   const url = `${location.origin}/mcp`;
   const he = lang === "he";
@@ -439,18 +460,27 @@ const connectStep = () => {
     root: view(
       h("h1", {}, t.connect),
       h("p", { class: "muted" }, he
-        ? "חברו את סורק הארכיון ל-AI שלכם פעם אחת. אחר כך ה-AI יוכל להתחיל סריקות, לקרוא את רשימת המסמכים ולפתוח עמודים סרוקים בעצמו."
-        : "Connect the scanner to your AI once. After that it can start scans, read the document list and open scanned pages by itself."),
-      h("pre", {}, url),
-      h("p", { class: "small" }, h("b", {}, "Claude: "), he
-        ? "Settings → Connectors → Add custom connector → הדביקו את הכתובת ← Add. בפעם הראשונה תתבקשו להיכנס עם האימייל."
-        : "Settings → Connectors → Add custom connector → paste the URL → Add. The first time, you'll sign in with your email."),
-      h("p", { class: "small" }, h("b", {}, "ChatGPT: "), he
-        ? "Settings → Apps & Connectors → Advanced → Developer mode → Create → הדביקו את הכתובת. הזמינות תלויה בתוכנית שלכם."
-        : "Settings → Apps & Connectors → Advanced → Developer mode → Create → paste the URL. Availability depends on your plan."),
+        ? "אחרי חיבור אחד, ה-AI שלכם יוכל לקרוא את הדפים הסרוקים עצמם — לא רק את רשימת המסמכים."
+        : "Connect once, and your AI can read the scanned pages themselves, not just the document list."),
+      h("a", { class: "button", href: claudeInstallUrl(), target: "_blank", rel: "noopener" }, t.connectClaude),
       h("p", { class: "muted small" }, he
-        ? "המחבר משתמש באותן מגבלות כמו האתר: 3 סריקות בשבוע, וסריקות של בניין מ-24 השעות האחרונות בחינם."
-        : "The connector has the same limits as the website: 3 scans a week, and buildings scanned in the last 24 hours are free."),
+        ? "Claude ייפתח עם הכול ממולא. לוחצים Add ונכנסים עם האימייל. בתוכנית החינמית של Claude אפשר מחבר מותאם אחד."
+        : "Claude opens with everything filled in. Click Add, then sign in with your email. Claude's free plan allows one custom connector."),
+      h("details", {},
+        h("summary", {}, "ChatGPT"),
+        h("ol", {},
+          h("li", {}, he ? "נדרשת תוכנית בתשלום עם Developer mode." : "Needs a paid plan with Developer mode."),
+          h("li", {}, "Settings → Apps & Connectors → Advanced → Developer mode."),
+          h("li", {}, he ? "Create ← הדביקו את הכתובת ← היכנסו עם האימייל." : "Create → paste the address → sign in with your email.")),
+        h("p", {}, copyButton(url))),
+      h("details", {},
+        h("summary", {}, he ? "אפליקציות אחרות" : "Other apps"),
+        h("p", {}, he ? "כל אפליקציה שתומכת במחברי MCP מרוחקים — הוסיפו את הכתובת:" : "Any app that supports remote MCP connectors — add this address:"),
+        h("pre", {}, url),
+        h("p", {}, copyButton(url))),
+      h("p", { class: "muted small" }, he
+        ? "אותן מגבלות כמו באתר: 3 סריקות בשבוע, ובניין שנסרק ב-24 השעות האחרונות — בחינם."
+        : "Same limits as the website: 3 scans a week, and buildings scanned in the last 24 hours are free."),
     ),
   };
 };

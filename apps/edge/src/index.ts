@@ -7,6 +7,7 @@ import { api, verifyHandler } from "./routes/api";
 import { authorize } from "./routes/authorize";
 import { files } from "./routes/files";
 import { internal } from "./routes/internal";
+import { aiPage } from "./routes/summary";
 
 const app = new Hono<AppContext>();
 
@@ -45,6 +46,8 @@ app.route("/internal", internal);
 app.route("/files", files);
 app.get("/auth/verify", verifyHandler);
 app.route("/authorize", authorize);
+app.get("/scan/:id/ai", aiPage("he"));
+app.get("/en/scan/:id/ai", aiPage("en"));
 
 // Website routes (/, /scan/<id>, /scans, /connect, /privacy, and the same under /en/) share one page shell.
 const PAGE = /^(\/en)?\/(?:scan\/[0-9a-f]{32}|scans|connect|privacy)?\/?$/;

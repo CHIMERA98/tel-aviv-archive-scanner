@@ -88,6 +88,26 @@ describe("MCP over OAuth", () => {
     expect(result.content[1]).toMatchObject({ type: "image", mimeType: "image/jpeg", data: "/9j/2Q==" });
   });
 
+  it("serves a plain page for AI apps that open links, no sign-in needed", async () => {
+    await seedDoneScan();
+    const ctx = createExecutionContext();
+    const he = await worker.fetch(new Request(`https://scanner.test/scan/${SCAN}/ai`), env, ctx);
+    const body = await he.text();
+    expect(he.status).toBe(200);
+    expect(he.headers.get("x-robots-tag")).toBe("noindex");
+    expect(body).toContain('dir="rtl"');
+    expect(body).toContain("A-001");
+    expect(body).toContain(`https://scanner.test/files/${SCAN}/pages/A-001/A-001-001.jpg`);
+    expect(body).toContain(`scan_id ${SCAN}`);
+    expect(body).not.toContain("<script");
+
+    const en = await worker.fetch(new Request(`https://scanner.test/en/scan/${SCAN}/ai`), env, ctx);
+    expect(await en.text()).toContain("Instructions for the AI reading this page");
+    const missing = await worker.fetch(new Request(`https://scanner.test/scan/${"c".repeat(32)}/ai`), env, ctx);
+    expect(missing.status).toBe(404);
+    await waitOnExecutionContext(ctx);
+  });
+
   it("explains when a scan isn't ready", async () => {
     const { result } = await rpc("tools/call", { name: "list_documents", arguments: { scan_id: "b".repeat(32) } });
     expect(result.isError).toBe(true);
