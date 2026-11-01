@@ -47,6 +47,9 @@ const fail = (message: string) => ({ ...text(message), isError: true });
 const loadScan = (env: Env, id: string) => env.DB.prepare("SELECT * FROM scans WHERE id = ?").bind(id).first<ScanRow>();
 
 /** The manifest of a finished scan, following a free reuse to the scan that holds the files. */
+// A short, predictable link per document (see /d/ in routes/summary.ts), so an AI can link what it cites.
+export const docLink = (publicUrl: string, scanId: string, docId: string) => `${publicUrl}/d/${scanId}/${docId}`;
+
 export const loadManifest = async (env: Env, scanId: string): Promise<{ manifest: Manifest; sourceId: string } | string> => {
   const row = await loadScan(env, scanId);
   if (!row) return "Unknown scan_id.";
@@ -76,7 +79,7 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
         "Research Tel Aviv-Yafo buildings from public municipal records. Typical flow: find_building → start_scan " +
         "(uses one of the user's 3 weekly scans unless the building was scanned in the last 24h) → poll get_scan_status " +
         "every ~30s → list_documents → get_document_pages for the few documents that matter. Documents are scans " +
-        "(mostly Hebrew, often handwritten); read the images yourself and cite doc_id and date.",
+        "(mostly Hebrew, often handwritten); read the images yourself and cite doc_id and date, linking each doc_id to its link so the user can open it.",
     },
   );
 
@@ -187,6 +190,7 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
           plan_no: d.plan_no ?? undefined,
           plan_status: d.plan_status ?? undefined,
           pages: d.pages,
+          link: docLink(env.PUBLIC_URL, scan_id, d.doc_id),
           note: d.note ?? undefined,
         }));
       return text({

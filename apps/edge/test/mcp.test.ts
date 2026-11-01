@@ -100,12 +100,28 @@ describe("MCP over OAuth", () => {
     expect(body).toContain(`https://scanner.test/files/${SCAN}/pages/A-001/A-001-001.jpg`);
     expect(body).toContain(`scan_id ${SCAN}`);
     expect(body).not.toContain("<script");
+    // Every document has a short link, printed as text, and the AI is told to cite with it.
+    expect(body).toContain(`[A-001](https://scanner.test/d/${SCAN}/A-001)`);
+    expect(body).toContain(`>https://scanner.test/d/${SCAN}/A-002</a>`);
 
     const en = await worker.fetch(new Request(`https://scanner.test/en/scan/${SCAN}/ai`), env, ctx);
     expect(await en.text()).toContain("Instructions for the AI reading this page");
     const missing = await worker.fetch(new Request(`https://scanner.test/scan/${"c".repeat(32)}/ai`), env, ctx);
     expect(missing.status).toBe(404);
     await waitOnExecutionContext(ctx);
+  });
+
+  it("sends a document's short link to its file", async () => {
+    await seedDoneScan();
+    const ctx = createExecutionContext();
+    const found = await worker.fetch(new Request(`https://scanner.test/d/${SCAN}/A-001`), env, ctx);
+    expect(found.status).toBe(302);
+    expect(found.headers.get("location")).toBe(`https://scanner.test/files/${SCAN}/pages/A-001/A-001-001.jpg`);
+    const missing = await worker.fetch(new Request(`https://scanner.test/d/${SCAN}/A-999`), env, ctx);
+    expect(missing.status).toBe(404);
+    await waitOnExecutionContext(ctx);
+    const { result } = await rpc("tools/call", { name: "list_documents", arguments: { scan_id: SCAN } });
+    expect(JSON.parse(result.content[0].text).documents[0].link).toBe(`https://scanner.test/d/${SCAN}/A-001`);
   });
 
   it("explains when a scan isn't ready", async () => {

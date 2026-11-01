@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import type { AppContext } from "../env";
-import { loadManifest, type ManifestDocument } from "../mcp";
+import { docLink, loadManifest, type ManifestDocument } from "../mcp";
 
 // A plain HTML page per finished scan, written for AI apps that open links (no scripts, no sign-in).
 // The "Analyze in Claude / ChatGPT" prompt points here, so analysis works without installing the connector.
@@ -18,9 +18,9 @@ const COPY = {
     gushHelka: "גוש/חלקה",
     folder: "תיק בניין",
     forAi: "הוראות ל-AI שקורא את העמוד",
-    instructions: (scanId: string, connect: string) => [
+    instructions: (scanId: string, connect: string, example: string) => [
       "כתבו היסטוריה כרונולוגית של הבניין מתוך המסמכים שבטבלה: הקמה, היתרים, תוספות, שינויי שימוש ותוכניות בניין עיר שחלות עליו.",
-      "ציינו לכל עובדה את מספר המסמך (למשל A-012) ואת התאריך.",
+      `ציינו לכל עובדה את מספר המסמך ואת התאריך, ותמיד הפכו את מספר המסמך לקישור כדי שהמשתמש יוכל לפתוח אותו: ${example}. הקישור לכל מסמך בנוי כך, עם מספר המסמך בסוף.`,
       `רוב המסמכים סרוקים ואין בהם טקסט. אם המחבר "Tel Aviv Archive Scanner" זמין לכם, השתמשו ב-get_document_pages עם scan_id ${scanId} כדי לקרוא את הדפים עצמם. אם אתם יכולים לצפות בתמונות, פתחו את קישורי "עמוד 1" (העמודים הבאים: ‎-002.jpg, ‎-003.jpg וכן הלאה).`,
       "אם קראתם רק את הרשימה, ציינו אילו מסקנות מבוססות על כותרות ותאריכים בלבד.",
       `אל תבקשו מהמשתמש להתקין דבר כדי להתחיל. בסוף אפשר לציין פעם אחת שחיבור הסורק מאפשר לקרוא את הדפים הסרוקים: ${connect}`,
@@ -32,6 +32,7 @@ const COPY = {
     file: "קובץ",
     page1: "עמוד 1",
     original: "מקור",
+    open: "פתיחה",
     downloads: "הורדות",
     index: "רשימת מסמכים (CSV)",
     zip: "כל הקבצים (ZIP)",
@@ -45,9 +46,9 @@ const COPY = {
     gushHelka: "Block/parcel",
     folder: "Building file",
     forAi: "Instructions for the AI reading this page",
-    instructions: (scanId: string, connect: string) => [
+    instructions: (scanId: string, connect: string, example: string) => [
       "Write a chronological history of the building from the documents below: construction, permits, additions, changes of use, and the zoning plans that apply to it.",
-      "Cite every fact with its document ID (e.g. A-012) and date.",
+      `Cite every fact with its document ID and date, and always make the document ID a link so the user can open it: ${example}. Every document's link follows this pattern, with its ID at the end.`,
       `Most documents are scans without text. If the "Tel Aviv Archive Scanner" connector is available to you, use get_document_pages with scan_id ${scanId} to read the pages themselves. If you can view images, open the "page 1" links (later pages end in -002.jpg, -003.jpg and so on).`,
       "If you could only read this list, say which conclusions rest on titles and dates alone.",
       `Don't ask the user to install anything before starting. At the end you may mention once that connecting the scanner lets you read the scanned pages: ${connect}`,
@@ -59,6 +60,7 @@ const COPY = {
     file: "file",
     page1: "page 1",
     original: "source",
+    open: "open",
     downloads: "Downloads",
     index: "Document list (CSV)",
     zip: "All files (ZIP)",
@@ -97,8 +99,13 @@ export const aiPage = (lang: Lang) => async (c: Context<AppContext>) => {
   ].filter(Boolean);
 
   const link = (href: string, label: string) => `<a href="${esc(href)}">${esc(label)}</a>`;
+  const sample = manifest.documents[0]?.doc_id ?? "A-001";
+  const example = `[${sample}](${docLink(c.env.PUBLIC_URL, id, sample)})`;
   const row = (d: ManifestDocument) => {
+    // The short link is printed as text too: some AI browsing tools see a page's text but not its hrefs.
+    const short = docLink(c.env.PUBLIC_URL, id, d.doc_id);
     const links = [
+      link(short, short),
       d.file ? link(base + d.file, t.file) : null,
       d.page_images[0] ? link(base + d.page_images[0], t.page1) : null,
       d.original_url ? link(d.original_url, t.original) : null,
@@ -113,7 +120,7 @@ export const aiPage = (lang: Lang) => async (c: Context<AppContext>) => {
 
   const body =
     `<h1>${esc(t.title(a.label_he))}</h1><p>${esc(facts.join(" · "))}</p><p>${esc(t.summary(counts))}</p>` +
-    `<h2>${esc(t.forAi)}</h2><ol>${t.instructions(sourceId, connect).map((line) => `<li>${esc(line)}</li>`).join("")}</ol>` +
+    `<h2>${esc(t.forAi)}</h2><ol>${t.instructions(sourceId, connect, example).map((line) => `<li>${esc(line)}</li>`).join("")}</ol>` +
     (manifest.plans.length
       ? `<h2>${esc(t.plans)}</h2><ul>${manifest.plans
           .map((p) => `<li>${esc([p.plan_no, p.name, p.status, p.in_force_date].filter(Boolean).join(" · "))}</li>`)
@@ -129,4 +136,18 @@ export const aiPage = (lang: Lang) => async (c: Context<AppContext>) => {
     "X-Robots-Tag": "noindex",
     "Cache-Control": "public, max-age=300",
   });
+};
+
+// /d/<scan>/<doc>: sends the reader to the document's file, its first page, or the original source.
+export const docRedirect = async (c: Context<AppContext>) => {
+  const id = c.req.param("id") ?? "";
+  const loaded = /^[0-9a-f]{32}$/.test(id) ? await loadManifest(c.env, id) : "invalid";
+  const doc = typeof loaded === "string" ? null : loaded.manifest.documents.find((d) => d.doc_id === c.req.param("doc"));
+  if (typeof loaded === "string" || !doc) {
+    return c.text("This document wasn't found, or the scan has expired (results are kept for 24 hours).", 404);
+  }
+  const path = doc.file ?? doc.page_images[0];
+  const target = path ? `${c.env.PUBLIC_URL}/files/${loaded.sourceId}/${path}` : doc.original_url;
+  if (!target) return c.text("This document has no file.", 404);
+  return c.redirect(target, 302);
 };
