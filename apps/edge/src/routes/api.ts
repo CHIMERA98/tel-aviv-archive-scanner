@@ -175,6 +175,7 @@ api.post("/scans", async (c) => {
   if (typeof body.selection !== "string") return c.json({ error: "invalid_selection" }, 400);
   const result = await startScan(c.env, user.id, body.selection, "web");
   if (!result.ok) return c.json({ error: result.error }, result.status);
+  await forgetActivity(c.env); // the page refreshes the feed right after this and should see the new scan
   if (!result.reused) c.executionCtx.waitUntil(dispatch(c.env));
   return c.json({ scanId: result.scanId, reused: result.reused });
 });
@@ -189,10 +190,13 @@ api.get("/scans", async (c) => {
 });
 
 // Public feed of what is scanning, waiting and recently scanned. Addresses only: who asked is never shown.
-// Cached for 10 seconds because every open page polls it.
+// Cached for 10 seconds because every open page polls it; scan changes clear it (in this data center).
+const activityCacheKey = (env: AppContext["Bindings"]) => new Request(`${env.PUBLIC_URL}/__activity`);
+export const forgetActivity = (env: AppContext["Bindings"]) => caches.default.delete(activityCacheKey(env));
+
 api.get("/activity", async (c) => {
   const cache = caches.default;
-  const cacheKey = new Request(`${c.env.PUBLIC_URL}/__activity`);
+  const cacheKey = activityCacheKey(c.env);
   const hit = await cache.match(cacheKey);
   if (hit) return hit;
 

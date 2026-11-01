@@ -195,6 +195,7 @@ describe("scans", () => {
 
   it("lists the queue and recent history publicly, without who asked", async () => {
     const cookie = await signIn("activity@example.com");
+    await call("/api/activity"); // fills the 10-second cache; starting a scan must clear it
     for (const n of [401, 402, 403]) await startScan(cookie, await lookupSelection(n));
     const response = await call("/api/activity");
     const text = await response.text();

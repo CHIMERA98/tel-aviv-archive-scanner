@@ -3,7 +3,7 @@ import type { AppContext } from "../env";
 import { now } from "../env";
 import { sha256Hex, verifyRequest } from "../lib/crypto";
 import { dispatch, failScan, retentionSeconds, type ScanRow } from "../lib/scans";
-import { notifyScanReady } from "./api";
+import { forgetActivity, notifyScanReady } from "./api";
 
 /** Signed endpoints for the Cloud Run scanner job (see scanner/edge_client.py). */
 export const internal = new Hono<AppContext>();
@@ -115,7 +115,7 @@ internal.post("/scans/:id/done", async (c) => {
   )
     .bind(JSON.stringify(summary), t, t + retentionSeconds(c.env), id)
     .run();
-  c.executionCtx.waitUntil(Promise.all([notifyScanReady(c.env, id), dispatch(c.env)]));
+  c.executionCtx.waitUntil(Promise.all([notifyScanReady(c.env, id), dispatch(c.env), forgetActivity(c.env)]));
   return c.json({ ok: true });
 });
 
@@ -127,7 +127,7 @@ internal.post("/scans/:id/failed", async (c) => {
   // Failures are ours (or the city's), never the user's: give the scan back.
   await failScan(c.env, id, String(error).slice(0, 500), true);
   if (blocked) console.error(`scan ${id}: municipal firewall blocked the scanner`);
-  c.executionCtx.waitUntil(dispatch(c.env));
+  c.executionCtx.waitUntil(Promise.all([dispatch(c.env), forgetActivity(c.env)]));
   return c.json({ ok: true });
 });
 
