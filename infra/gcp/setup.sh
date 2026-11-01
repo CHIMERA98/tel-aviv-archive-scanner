@@ -54,7 +54,7 @@ gcloud secrets add-iam-policy-binding scanner-hmac --member "serviceAccount:$RUN
 
 echo "== Scanner job (one execution per scan)"
 gcloud run jobs deploy scanner --region "$REGION" --image "$IMAGE" --tasks 1 --max-retries 0 \
-  --task-timeout 45m --cpu 2 --memory 2Gi --service-account "$RUNTIME_SA" \
+  --task-timeout 45m --cpu 2 --memory 4Gi --service-account "$RUNTIME_SA" \
   --set-env-vars "EDGE_URL=$EDGE_URL,SCAN_TIMEOUT_S=2400" --set-secrets "SCANNER_HMAC_KEY=scanner-hmac:latest" --quiet
 
 echo "== Lookup service (address -> building), scale to zero"

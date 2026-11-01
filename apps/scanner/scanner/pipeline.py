@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
-from scanner.http import Fetcher, SourceBlockedError
+from scanner.http import Fetcher, FileTooLargeError, SourceBlockedError
 from scanner.models import AddressMatch, Building, Document, Plan, ScanManifest
 from scanner.render import bundle, decks, index_csv, pages, prompts
 from scanner.sources import gis, handasa, mapjunction, taba
@@ -83,11 +83,18 @@ async def _collect_plans(
         *(taba.download(fetcher, url, root / rel) for _, url, rel in jobs), return_exceptions=True
     )
     docs: list[Document] = []
+    too_large: list[int] = []
     for (plan, url, rel), result in zip(jobs, results, strict=True):
         doc_id = f"P-{len(docs) + 1:03d}"
         failed = isinstance(result, BaseException)
-        if failed:
+        if isinstance(result, FileTooLargeError):
+            too_large.append(result.size)
+            note = f"large file ({result.size / 1_000_000:.0f} MB): open the original link"
+        elif failed:
             warnings.append(f"Plan {plan.plan_no}: could not download {url} ({result})")
+            note = "download failed"
+        else:
+            note = None
         docs.append(
             Document(
                 doc_id=doc_id,
@@ -100,8 +107,13 @@ async def _collect_plans(
                 plan_status=plan.status,
                 original_url=url,
                 file=None if failed else rel,
-                note="download failed" if failed else None,
+                note=note,
             )
+        )
+    if too_large:
+        warnings.append(
+            f"{len(too_large)} large plan files ({sum(too_large) / 1_000_000:.0f} MB) were linked, not copied; "
+            "see original_url in index.csv"
         )
     return plans, docs
 

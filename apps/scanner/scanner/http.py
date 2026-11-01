@@ -18,6 +18,14 @@ class SourceBlockedError(RuntimeError):
     """The municipal firewall refused us, almost always because the IP is outside Israel."""
 
 
+class FileTooLargeError(RuntimeError):
+    """The server announced a file bigger than the caller's limit; nothing was downloaded."""
+
+    def __init__(self, url: str, size: int) -> None:
+        super().__init__(f"{url} is {size / 1_000_000:.0f} MB")
+        self.size = size
+
+
 class Fetcher:
     def __init__(self, *, attempts: int = 3, timeout: float = 60.0) -> None:
         self._client = httpx.AsyncClient(
@@ -94,10 +102,13 @@ class Fetcher:
         response.raise_for_status()
         return response.json()
 
-    async def download(self, url: str, dest: Path, *, stalls: int = 4, max_tries: int = 60) -> int:
+    async def download(
+        self, url: str, dest: Path, *, stalls: int = 4, max_tries: int = 60, max_bytes: int | None = None
+    ) -> int:
         """Stream a file to disk, resuming with Range requests when the server drops the connection.
 
         Keeps resuming as long as attempts make progress; gives up after `stalls` attempts in a row add nothing.
+        With `max_bytes`, a larger announced size raises FileTooLargeError before any body is read.
         """
         host = urlsplit(url).hostname or ""
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -121,6 +132,9 @@ class Fetcher:
                                 f"HTTP {response.status_code}", request=response.request, response=response
                             )
                         response.raise_for_status()
+                        size = int(response.headers.get("content-length") or 0)
+                        if max_bytes and response.status_code == 200 and size > max_bytes:
+                            raise FileTooLargeError(url, size)
                         resumed = have and response.status_code == 206
                         with partial.open("ab" if resumed else "wb") as handle:
                             async for chunk in response.aiter_bytes(256 * 1024):

@@ -38,7 +38,7 @@ async def plan_files(fetcher: Fetcher, plan: Plan) -> list[str]:
 
 
 async def download(fetcher: Fetcher, url: str, dest: Path) -> int:
-    size = await fetcher.download(url, dest)
+    size = await fetcher.download(url, dest, max_bytes=config.MAX_PLAN_FILE_BYTES)
     with dest.open("rb") as handle:
         if handle.read(64).lstrip()[:1] == b"<":
             dest.unlink()

@@ -25,6 +25,9 @@ MAPJUNCTION_FILTER = "https://alpha.mapjunction.com/api/maps/filter/"
 # Plans covering more than this (m²) are city-wide and say nothing about one building.
 MAX_PLAN_AREA_M2 = 300_000
 
+# Larger plan scans (some are 50-70 MB, served at ~80 KB/s) are linked instead of copied.
+MAX_PLAN_FILE_BYTES = 15 * 1024 * 1024
+
 # Politeness toward the municipality's servers: simultaneous requests per host and minimum gap between starts.
 POLITE_HOST_SUFFIXES = (".tel-aviv.gov.il",)
 PER_HOST_CONCURRENCY = 3
