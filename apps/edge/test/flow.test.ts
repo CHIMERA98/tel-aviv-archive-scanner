@@ -193,6 +193,25 @@ describe("scans", () => {
     expect(active?.n).toBeLessThanOrEqual(2);
   });
 
+  it("lists the queue and recent history publicly, without who asked", async () => {
+    const cookie = await signIn("activity@example.com");
+    for (const n of [401, 402, 403]) await startScan(cookie, await lookupSelection(n));
+    const response = await call("/api/activity");
+    const text = await response.text();
+    expect(text).not.toContain("activity@example.com");
+    expect(text).not.toContain("user_id");
+    const { total, items } = JSON.parse(text) as {
+      total: number;
+      items: { label_en: string; status: string; position: number | null; id: string | null }[];
+    };
+    expect(typeof total).toBe("number");
+    const mine = items.filter((i) => /Haghara 40[123]/.test(i.label_en));
+    expect(mine).toHaveLength(3);
+    expect(mine.every((i) => i.id && ["queued", "running"].includes(i.status))).toBe(true);
+    const queued = items.filter((i) => i.status === "queued").map((i) => i.position);
+    expect(queued).toEqual(queued.map((_, i) => i + 1));
+  });
+
   it("refunds the quota when a scan fails", async () => {
     const cookie = await signIn("refund@example.com");
     const { scanId } = (await (await startScan(cookie, await lookupSelection(301))).json()) as { scanId: string };

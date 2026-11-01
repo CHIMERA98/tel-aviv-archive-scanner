@@ -188,6 +188,59 @@ api.get("/scans", async (c) => {
   return c.json({ scans: await Promise.all(rows.results.map((row) => publicScan(c, row))) });
 });
 
+// Public feed of what is scanning, waiting and recently scanned. Addresses only: who asked is never shown.
+// Cached for 10 seconds because every open page polls it.
+api.get("/activity", async (c) => {
+  const cache = caches.default;
+  const cacheKey = new Request(`${c.env.PUBLIC_URL}/__activity`);
+  const hit = await cache.match(cacheKey);
+  if (hit) return hit;
+
+  const t = now();
+  const [active, recent, total] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      "SELECT id, label_he, label_en, status, stages_json FROM scans " +
+        "WHERE cached_from IS NULL AND status IN ('queued','starting','running') ORDER BY queued_at",
+    ),
+    c.env.DB.prepare(
+      "SELECT id, label_he, label_en, summary_json, finished_at, expires_at FROM scans " +
+        "WHERE cached_from IS NULL AND status IN ('done','expired') ORDER BY finished_at DESC LIMIT 10",
+    ),
+    c.env.DB.prepare("SELECT COUNT(*) AS n FROM scans WHERE cached_from IS NULL AND status IN ('done','expired')"),
+  ]);
+  let position = 0;
+  const running = (active.results as Pick<ScanRow, "id" | "label_he" | "label_en" | "status" | "stages_json">[]).map((row) => {
+    const stages = JSON.parse(row.stages_json || "{}") as Record<string, { status: string }>;
+    return {
+      id: row.id,
+      label_he: row.label_he,
+      label_en: row.label_en,
+      status: row.status === "queued" ? "queued" : "running",
+      position: row.status === "queued" ? ++position : null,
+      stage: Object.entries(stages).find(([, s]) => s.status === "running")?.[0] ?? null,
+    };
+  });
+  const finished = (recent.results as Pick<ScanRow, "id" | "label_he" | "label_en" | "summary_json" | "finished_at" | "expires_at">[]).map(
+    (row) => {
+      const available = (row.expires_at ?? 0) > t;
+      return {
+        id: available ? row.id : null, // expired scans have no files left to open
+        label_he: row.label_he,
+        label_en: row.label_en,
+        status: available ? "done" : "expired",
+        counts: row.summary_json ? (JSON.parse(row.summary_json) as { counts?: unknown }).counts ?? null : null,
+        finished_at: row.finished_at,
+      };
+    },
+  );
+  const response = Response.json(
+    { total: (total.results[0] as { n: number } | undefined)?.n ?? 0, items: [...running, ...finished] },
+    { headers: { "Cache-Control": "public, max-age=10" } },
+  );
+  c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()));
+  return response;
+});
+
 // Anyone with the (unguessable) scan link can see it: the contents are public municipal records.
 api.get("/scans/:id", async (c) => {
   const row = await c.env.DB.prepare("SELECT * FROM scans WHERE id = ?").bind(c.req.param("id")).first<ScanRow>();
