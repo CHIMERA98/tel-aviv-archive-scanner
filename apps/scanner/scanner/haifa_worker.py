@@ -2,8 +2,9 @@
 
 The edge runs at most one execution. It loops on POST /internal/haifa/next, which hands out, in priority order,
 documents someone opened, first deliveries of new scans, background documents, and finishing work. It exits when
-there is nothing to do, or at the first HTTP 429 from Complot (after telling the edge, which pauses Complot for
-45 minutes and restarts the worker afterwards). Every finished unit is stored, so an exit loses nothing.
+there is nothing to do, or when Complot blocks it (HTTP 429, or silently: see complot.EXPECTED), after telling the edge,
+which pauses Complot for 45 minutes and restarts the worker afterwards. Every finished unit is stored, so an exit loses
+nothing; a document that failed on the suspect answer just before a silent block goes back in the queue.
 
 Environment: EDGE_URL, SCANNER_HMAC_KEY (as the Tel Aviv job), WORKER_MAX_S (default 10200, under the 3 h timeout).
 """
@@ -21,7 +22,7 @@ from pathlib import Path
 from scanner import config, haifa_scan
 from scanner.edge_client import EdgeCache, EdgeClient
 from scanner.http import Fetcher, SourceBlockedError
-from scanner.models import AddressMatch, Building, ScanManifest
+from scanner.models import AddressMatch, Building, Document, ScanManifest
 from scanner.sources.complot import ComplotBlockedError, ComplotClient
 
 log = logging.getLogger("haifa-worker")
@@ -56,15 +57,16 @@ async def _manifest(scan: EdgeClient, root: Path) -> ScanManifest:
     return ScanManifest.model_validate_json((root / "manifest.json").read_text(encoding="utf-8"))
 
 
-async def document(edge: EdgeClient, client: ComplotClient, work: dict) -> None:
+async def document(edge: EdgeClient, client: ComplotClient, work: dict) -> Document | None:
     scan = edge.for_scan(work["scan_id"])
     with tempfile.TemporaryDirectory(prefix="haifa-") as tmp:
         root = Path(tmp)
         manifest = await _manifest(scan, root)
         doc = next((d for d in manifest.documents if d.doc_id == work["doc_id"]), None)
-        if doc is None or doc.status != "pending":
+        # A failed one is fetched again only when the edge hands it out: it was put back after a block.
+        if doc is None or doc.status == "ready":
             await scan.haifa_document(work["doc_id"], doc.status if doc else "failed", doc.pages if doc else 0)
-            return
+            return None
         await haifa_scan.fetch_document(client, doc, root)
         for rel in [doc.file, *doc.image_files()]:
             if rel:
@@ -72,6 +74,7 @@ async def document(edge: EdgeClient, client: ComplotClient, work: dict) -> None:
         (root / "manifest.json").write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
         await scan.upload_file(root / "manifest.json", "manifest.json")
         await scan.haifa_document(doc.doc_id, doc.status, doc.pages)
+        return doc
 
 
 async def finish(edge: EdgeClient, work: dict) -> None:
@@ -112,6 +115,7 @@ async def run() -> int:
                 await asyncio.sleep(HEARTBEAT_S)
 
         beat = asyncio.create_task(heartbeat())
+        suspect: list[tuple[str, str]] = []  # (scan, doc) that failed on a suspect answer, since the last good one
         try:
             while time.monotonic() < deadline:
                 work = await edge.haifa_next()
@@ -125,10 +129,14 @@ async def run() -> int:
                     if kind == "scan":
                         await first_delivery(edge, fetcher, client, work)
                     elif kind == "document":
-                        await document(edge, client, work)
+                        doc = await document(edge, client, work)
+                        if doc is not None and doc.note == haifa_scan.SUSPECT_NOTE:
+                            suspect.append((work["scan_id"], doc.doc_id))
                     else:
                         await finish(edge, work)
                 except ComplotBlockedError as err:
+                    for scan_id, doc_id in suspect:  # their answers were the start of the block, not missing files
+                        await edge.for_scan(scan_id).haifa_document(doc_id, "pending", 0)
                     await edge.for_scan(work["scan_id"]).haifa_blocked(str(err))
                     log.warning("Complot blocked us after %d calls; stopping", client.calls)
                     return 2
@@ -141,6 +149,8 @@ async def run() -> int:
                         await scan.haifa_document(work["doc_id"], "failed", 0)
                     else:
                         await scan.failed(f"{type(err).__name__}: {err}"[:500])
+                if client.suspects == 0:
+                    suspect.clear()
             return 0
         finally:
             beat.cancel()

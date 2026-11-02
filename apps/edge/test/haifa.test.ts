@@ -193,6 +193,26 @@ describe("haifa", () => {
     expect(await next()).toMatchObject({ kind: "scan", scan_id: scanId, interval_s: 18 });
   });
 
+  it("puts a document that failed just before a silent block back in the queue", async () => {
+    const cookie = await signIn("silent@example.com");
+    const { scanId } = await startHaifaScan(cookie, 53);
+    expect(await next()).toMatchObject({ kind: "scan", scan_id: scanId });
+    await deliver(scanId, ["A-002", "A-003"]);
+    const report = async (doc: string, status: string) =>
+      json<{ pending: number }>(
+        await signed("POST", `/internal/haifa/scans/${scanId}/documents/${doc}`, JSON.stringify({ status, pages: 0 })),
+      );
+
+    expect(await next()).toMatchObject({ kind: "document", doc_id: "A-002" });
+    expect(await report("A-002", "failed")).toMatchObject({ pending: 1 });
+    expect(await next()).toMatchObject({ kind: "document", doc_id: "A-003" });
+    await report("A-003", "ready");
+    // A-003's answer was the second suspect one: the worker puts A-002 back. A ready document stays ready.
+    expect(await report("A-002", "pending")).toMatchObject({ pending: 1 });
+    expect(await report("A-003", "pending")).toMatchObject({ pending: 1 });
+    expect(await next()).toMatchObject({ kind: "document", doc_id: "A-002" });
+  });
+
   it("keeps Complot results in the 30-day cache", async () => {
     const key = "docs/F04FD286-C3A8-4E75-9822-F69556D1F6C9.pdf";
     expect((await signed("GET", `/internal/haifa/cache/${key}`)).status).toBe(404);

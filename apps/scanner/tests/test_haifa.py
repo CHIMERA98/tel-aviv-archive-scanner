@@ -1,6 +1,7 @@
 """Haifa: Complot parsers on recorded pages, the paced client, priorities and outputs. No network."""
 
 import datetime as dt
+import json
 import time
 from pathlib import Path
 
@@ -8,7 +9,7 @@ import httpx
 import pytest
 import respx
 
-from scanner import cities, config, haifa_scan
+from scanner import cities, config, haifa_scan, haifa_worker
 from scanner.models import AddressMatch, Building, ScanManifest
 from scanner.render import requests_md
 from scanner.sources import complot, gis, haifa_gis, mapwarper
@@ -152,6 +153,111 @@ async def test_document_needs_ifn_and_rejects_error_pages(tmp_path):
         pdf.mock(return_value=httpx.Response(200, content=page("error_page.html").encode("utf-8-sig")))
         with pytest.raises(complot.ComplotError):
             await client.document("00000000-0000-0000-0000-000000000000", tmp_path / "out" / "A-002.pdf")
+
+
+NO_LINK = "<html><body><p>No link here</p></body></html>"  # what Complot answered during the 2026-11-02 silent block
+REJECTED = (
+    "<html><body>The requested URL was rejected. Please consult with your administrator.<br>"
+    "Your support ID is: 1</body></html>"
+)
+
+
+@respx.mock
+async def test_silent_block_on_document_links(tmp_path):
+    ifn = respx.get(url__startswith=config.COMPLOT_PAGES).mock(return_value=httpx.Response(200, text=NO_LINK))
+    respx.get(url__startswith=f"{config.COMPLOT_BASE}/handasi2016/cache/").mock(
+        return_value=httpx.Response(200, content=b"%PDF-1.7 test")
+    )
+    cache = LocalCache(tmp_path / "cache")
+    async with ComplotClient(cache, interval=0) as client:
+        # One document without a link may just lack its file; a good answer after it clears the doubt.
+        with pytest.raises(complot.ComplotSuspectError):
+            await client.document("A", tmp_path / "A.pdf")
+        ifn.mock(return_value=httpx.Response(200, text=page("document_ifn.html")))
+        await client.document("B", tmp_path / "B.pdf")
+        assert client.suspects == 0
+        # Two in a row: a block, and no third call.
+        ifn.mock(return_value=httpx.Response(200, text=NO_LINK))
+        with pytest.raises(complot.ComplotSuspectError):
+            await client.document("C", tmp_path / "C.pdf")
+        with pytest.raises(ComplotBlockedError):
+            await client.document("D", tmp_path / "D.pdf")
+        assert client.calls == 4
+    # The first suspect page is kept for diagnosis, once.
+    assert [p.read_text(encoding="utf-8") for p in (tmp_path / "cache" / "debug").iterdir()] == [NO_LINK]
+
+
+@respx.mock
+async def test_suspect_page_is_retried_once_and_never_cached(tmp_path):
+    route = respx.get(url__startswith=config.COMPLOT_PAGES).mock(
+        side_effect=[httpx.Response(200, text=NO_LINK), httpx.Response(200, text=page("tik_file_20130857.html"))]
+    )
+    cache = LocalCache(tmp_path)
+    async with ComplotClient(cache, interval=0) as client:
+        assert len((await client.building_file("20130857")).requests) == 8
+        assert route.call_count == 2 and client.suspects == 0
+
+    route.side_effect = [httpx.Response(200, text=NO_LINK)] * 2
+    async with ComplotClient(cache, interval=0) as client:
+        with pytest.raises(ComplotBlockedError):
+            await client.request("1", "2")
+    assert not list((tmp_path / "pages").glob("GetBakashaFile/*"))
+
+
+@respx.mock
+async def test_rejected_page_is_a_block_at_once(tmp_path):
+    route = respx.get(url__startswith=config.COMPLOT_PAGES).mock(return_value=httpx.Response(200, text=REJECTED))
+    async with ComplotClient(LocalCache(tmp_path), interval=0) as client:
+        with pytest.raises(ComplotBlockedError):
+            await client.building_file("1")
+    assert route.call_count == 1
+
+
+@respx.mock
+async def test_genuine_pages_are_not_suspect(tmp_path):
+    for name in ("no_results.html", "error_page.html", "tikim_by_address_bengurion10.html"):
+        respx.get(url__startswith=config.COMPLOT_PAGES).mock(return_value=httpx.Response(200, text=page(name)))
+        async with ComplotClient(LocalCache(tmp_path / name), interval=0) as client:
+            await client.building_files(399, 10)
+            assert client.suspects == 0 and client.calls == 1
+
+
+@respx.mock
+async def test_document_without_link_gets_the_suspect_note(tmp_path):
+    respx.get(url__startswith=config.COMPLOT_PAGES).mock(return_value=httpx.Response(200, text=NO_LINK))
+    doc = haifa_scan.archive_documents(_entries()[1])[0]
+    async with ComplotClient(LocalCache(tmp_path / "cache"), interval=0) as client:
+        await haifa_scan.fetch_document(client, doc, tmp_path)
+        assert (doc.status, doc.note) == ("failed", haifa_scan.SUSPECT_NOTE)
+        with pytest.raises(ComplotBlockedError):
+            await haifa_scan.fetch_document(client, haifa_scan.archive_documents(_entries()[1])[1], tmp_path)
+
+
+@respx.mock
+async def test_worker_puts_back_the_document_before_a_silent_block(tmp_path, monkeypatch):
+    edge = "https://edge.test"
+    monkeypatch.setenv("EDGE_URL", edge)
+    monkeypatch.setenv("SCANNER_HMAC_KEY", "k")
+    manifest = _manifest(tmp_path)
+    first, second = manifest.documents[0].doc_id, manifest.documents[1].doc_id
+    work = [{"kind": "document", "scan_id": "S", "doc_id": d, "interval_s": 0.001} for d in (first, second)]
+    respx.post(f"{edge}/internal/haifa/next").mock(side_effect=[httpx.Response(200, json=w) for w in work])
+    respx.post(f"{edge}/internal/haifa/heartbeat").mock(return_value=httpx.Response(200, json={}))
+    respx.get(f"{edge}/internal/scans/S/files/manifest.json").mock(
+        return_value=httpx.Response(200, content=manifest.model_dump_json().encode())
+    )
+    respx.put(url__startswith=f"{edge}/internal/").mock(return_value=httpx.Response(200, json={}))
+    respx.get(url__startswith=f"{edge}/internal/haifa/cache/").mock(return_value=httpx.Response(404))
+    reports = respx.post(url__startswith=f"{edge}/internal/haifa/scans/S/documents/").mock(
+        return_value=httpx.Response(200, json={"pending": 1})
+    )
+    blocked = respx.post(f"{edge}/internal/haifa/blocked").mock(return_value=httpx.Response(200, json={}))
+    complot_pages = respx.get(url__startswith=config.COMPLOT_PAGES).mock(return_value=httpx.Response(200, text=NO_LINK))
+
+    assert await haifa_worker.run() == 2
+    sent = [(r.request.url.path.rsplit("/", 1)[-1], json.loads(r.request.content)["status"]) for r in reports.calls]
+    assert sent == [(first, "failed"), (first, "pending")]
+    assert blocked.call_count == 1 and complot_pages.call_count == 2
 
 
 # ---------- priorities and documents ----------

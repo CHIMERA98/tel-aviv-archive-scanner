@@ -21,7 +21,7 @@ from scanner.models import AddressMatch, Building, Document, HistoricMap, Permit
 from scanner.pipeline import Progress, ProgressFn, attach_pages, render_document_pages, render_maps, write_outputs
 from scanner.render import pages
 from scanner.sources import complot, haifa_gis, mapwarper, palopenmaps, taba
-from scanner.sources.complot import ComplotBlockedError, ComplotClient, DocumentRef
+from scanner.sources.complot import ComplotBlockedError, ComplotClient, ComplotError, ComplotSuspectError, DocumentRef
 
 # Download order for request documents: lower first (docs/HAIFA_PLAN.md §3.3).
 PRIORITY_RULES: tuple[tuple[int, Callable[[str, str], bool]], ...] = (
@@ -35,6 +35,8 @@ PRIORITY_RULES: tuple[tuple[int, Callable[[str, str], bool]], ...] = (
 )
 DEFAULT_RANK = 5
 FIRST_DELIVERY_MAX_RANK = 2  # signed permits, signed plans and decisions
+# A document whose link page came back without a link: genuinely missing, unless the next answer shows a block.
+SUSPECT_NOTE = "download failed: Complot gave no download link"
 
 
 def rank(name: str, subject: str | None) -> int:
@@ -113,6 +115,9 @@ async def fetch_document(client: ComplotClient, doc: Document, root: Path) -> Do
         path = await client.document(doc.guid or "", root / "archive" / f"{doc.doc_id}.pdf")
     except ComplotBlockedError:
         raise
+    except ComplotSuspectError:
+        doc.status, doc.note = "failed", SUSPECT_NOTE
+        return doc
     except Exception as err:
         doc.status, doc.note = "failed", f"download failed: {err}"[:200]
         return doc
@@ -153,7 +158,13 @@ async def collect_plans(
         plan.deposit_date = details.deposit_date
         for ref in complot.pick_plan_files(details.files):
             doc_id = f"P-{len(docs) + 1:03d}"
-            url = await client.plan_file_url(ref)
+            try:
+                url = await client.plan_file_url(ref)
+            except ComplotBlockedError:
+                raise
+            except ComplotError as err:
+                warnings.append(f"Plan {plan.plan_no}: no link for {ref.name} ({err})")
+                continue
             rel = f"plans/{plan.id_taba}/{_safe(url.rsplit('/', 1)[-1])}"  # Complot's numeric plan id: ASCII paths
             note = None
             try:
@@ -223,6 +234,9 @@ async def first_delivery(
         for i, doc in enumerate(batch):
             await fetch_document(client, doc, root)
             await progress("archive", "running", f"{i + 1}/{len(batch)} key documents")
+        for doc in batch:
+            if doc.note == SUSPECT_NOTE:  # one more try in the background, where a block can still put it back
+                doc.status, doc.note = "pending", None
         ready = sum(1 for d in documents if d.status == "ready")
         await progress("archive", "done", f"{ready} of {len(documents)} documents")
 

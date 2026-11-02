@@ -161,17 +161,27 @@ export const markDelivered = async (
 };
 
 export const markDocument = async (env: Env, scanId: string, docId: string, status: string): Promise<number> => {
-  const final = ["ready", "failed"].includes(status) ? status : "failed";
   const t = now();
-  await env.DB.batch([
-    env.DB.prepare("UPDATE haifa_documents SET status = ?, done_at = ? WHERE scan_id = ? AND doc_id = ?").bind(
-      final,
-      t,
-      scanId,
-      docId,
-    ),
-    env.DB.prepare("UPDATE scans SET last_progress_at = ? WHERE id = ?").bind(t, scanId),
-  ]);
+  if (status === "pending") {
+    // Its "no link" answer turned out to be the start of a silent block: back in the queue of a scan still filling.
+    await env.DB.prepare(
+      "UPDATE haifa_documents SET status = 'pending', done_at = NULL WHERE scan_id = ? AND doc_id = ? " +
+        "AND status = 'failed' AND EXISTS (SELECT 1 FROM scans WHERE id = scan_id AND status = 'filling')",
+    )
+      .bind(scanId, docId)
+      .run();
+  } else {
+    const final = status === "ready" ? status : "failed";
+    await env.DB.batch([
+      env.DB.prepare("UPDATE haifa_documents SET status = ?, done_at = ? WHERE scan_id = ? AND doc_id = ?").bind(
+        final,
+        t,
+        scanId,
+        docId,
+      ),
+      env.DB.prepare("UPDATE scans SET last_progress_at = ? WHERE id = ?").bind(t, scanId),
+    ]);
+  }
   const row = await env.DB.prepare(
     "SELECT COUNT(*) AS n FROM haifa_documents WHERE scan_id = ? AND status = 'pending'",
   )

@@ -2,17 +2,18 @@
 
 The page endpoint (magicscripts) blocks an IP for 20+ minutes when called too often (HTTP 429), so:
 - one client, one request in flight, at least `interval` seconds between page calls;
-- a 429 raises ComplotBlockedError at once and is never retried;
+- a 429, F5's reject page or two suspect answers in a row (EXPECTED) raise ComplotBlockedError, never retried;
 - every page and document goes through a cache first, so nothing is fetched twice.
 Pages report "no results" and errors as HTTP 200 HTML; the parsers recognise both.
 """
 
 import asyncio
+import contextlib
 import hashlib
 import re
 import time
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Protocol
@@ -28,14 +29,32 @@ ERROR_PAGE = "אירעה שגיאה"
 DOWNLOAD_LINK = re.compile(r'class="download-link"\s+href="([^"]+)"')
 JS_CALL = re.compile(r"(\w+)\(([^)]*)\)")
 MAX_CACHED_BYTES = 90 * 1024 * 1024
+# F5's "request rejected" page, which comes with HTTP 200.
+REJECTED_PAGE = re.compile(r"requested URL was rejected|support ID", re.IGNORECASE)
+# Text every genuine answer of these pages has, besides "no results" and Complot's error page. A page without it is
+# suspect: on 2026-11-02 Complot silently answered every GetDocumentIFN without a link after 83 calls (§12.1).
+EXPECTED = {
+    "GetTikimByAddress": "תוצאות איתור תיקי בניין",
+    "GetTikFile": "פרטי תיק בניין",
+    "GetBakashaFile": "פרטי בקשה",
+    "GetTabaFile": "פרטי התוכנית",
+    "ShowPhoto": 'class="download-link"',
+    "GetDocumentIFN": 'class="download-link"',
+}
+LINK_PAGES = ("ShowPhoto", "GetDocumentIFN")  # their content is one file's link, which a file may lack
+SUSPECTS_FOR_BLOCK = 2  # suspect answers in a row that count as a block
 
 
 class ComplotBlockedError(RuntimeError):
-    """Complot's DoS guard refused us (HTTP 429). Stop all Complot work; the edge pauses it for 45 minutes."""
+    """Complot's DoS guard refused us (HTTP 429 or silently). Stop all Complot work; the edge pauses it 45 minutes."""
 
 
 class ComplotError(RuntimeError):
     """Complot answered with its error page or something that isn't the expected file."""
+
+
+class ComplotSuspectError(ComplotError):
+    """Complot answered HTTP 200 without what that page always has: a missing file, or the start of a silent block."""
 
 
 class SourceCache(Protocol):
@@ -400,6 +419,8 @@ class ComplotClient:
         self.cache: SourceCache = cache or NoCache()
         self.interval = interval
         self.calls = 0  # page calls actually sent to Complot (cache hits excluded)
+        self.suspects = 0  # suspect answers in a row (see EXPECTED)
+        self._suspect_saved = False
         self._lock = asyncio.Lock()
         self._last = 0.0
         self._client = httpx.AsyncClient(
@@ -425,13 +446,36 @@ class ComplotClient:
         response.raise_for_status()
         return response
 
+    async def _fetch(self, prgname: str, **params: str | int) -> str:
+        """One paced page call, checked for a block: F5's reject page, or suspect answers in a row."""
+        response = await self._paced_get(page_url(prgname, **params))
+        html = response.content.decode("utf-8-sig", errors="replace")
+        if REJECTED_PAGE.search(html):
+            raise ComplotBlockedError("Complot rejected the request (HTTP 200 'request rejected' page)")
+        expected = EXPECTED.get(prgname)
+        if expected is None or expected in html or NO_RESULTS in html or ERROR_PAGE in html:
+            self.suspects = 0
+            return html
+        self.suspects += 1
+        if not self._suspect_saved:  # keep one, so the block page can be recognised directly next time
+            self._suspect_saved = True
+            with contextlib.suppress(Exception):
+                await self.cache.put(f"debug/{prgname}-{datetime.now(UTC):%Y%m%dT%H%M%S}.html", html.encode("utf-8"))
+        if self.suspects >= SUSPECTS_FOR_BLOCK:
+            raise ComplotBlockedError(f"Complot answered {self.suspects} pages in a row without their content")
+        raise ComplotSuspectError(f"Complot answered {prgname} without its content")
+
     async def page(self, prgname: str, **params: str | int) -> str:
         key = _cache_key(prgname, params)
         cached = await self.cache.get(key)
         if cached is not None:
             return cached.decode("utf-8-sig")
-        response = await self._paced_get(page_url(prgname, **params))
-        html = response.content.decode("utf-8-sig", errors="replace")
+        try:
+            html = await self._fetch(prgname, **params)
+        except ComplotSuspectError:
+            if prgname in LINK_PAGES:  # a file can lack its link; the next document's answer decides
+                raise
+            html = await self._fetch(prgname, **params)  # a page always has its title: a second miss is a block
         if ERROR_PAGE not in html:  # don't keep transient errors for 30 days
             await self.cache.put(key, html.encode("utf-8"))
         return html
@@ -476,8 +520,7 @@ class ComplotClient:
 
     async def _ifn_page(self, guid: str) -> str:
         # Not cached: the link it returns is only good once the server has copied the file.
-        response = await self._paced_get(page_url("GetDocumentIFN", guid="{" + guid + "}"))
-        return response.content.decode("utf-8-sig", errors="replace")
+        return await self._fetch("GetDocumentIFN", guid="{" + guid + "}")
 
     async def _static(self, url: str) -> bytes:
         response = await self._client.get(url)
