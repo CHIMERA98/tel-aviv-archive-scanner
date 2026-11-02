@@ -19,7 +19,9 @@ export const internal = new Hono<AppContext>();
 // "filling": a Haifa scan still receiving documents from the worker.
 const ACTIVE = ["starting", "running", "filling"];
 const FILE_PATH = /^[\w\u05D0-\u05EA\-./]{1,200}$/; // plan folders can carry Hebrew plan numbers
-const CACHE_KEY = /^(?:pages\/\w{1,40}\/[0-9a-f]{16}\.html|docs\/[0-9A-F-]{36}\.\w{2,4})$/;
+// Pages, documents, and suspect answers kept for diagnosis (complot.EXPECTED).
+const CACHE_KEY =
+  /^(?:pages\/\w{1,40}\/[0-9a-f]{16}\.html|docs\/[0-9A-F-]{36}\.\w{2,4}|debug\/\w{1,40}-\d{8}T\d{6}\.html)$/;
 const streamed = (method: string, path: string) =>
   method === "PUT" && (path.includes("/files/") || path.startsWith("/internal/haifa/cache/"));
 

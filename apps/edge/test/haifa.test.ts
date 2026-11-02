@@ -221,6 +221,9 @@ describe("haifa", () => {
     const hit = await signed("GET", `/internal/haifa/cache/${key}`);
     expect(await hit.text()).toBe("%PDF-1.7 test");
     expect((await signed("GET", "/internal/haifa/cache/scans/abc/manifest.json")).status).toBe(400);
+    // The first suspect answer of a worker run is kept for diagnosis.
+    const page = new TextEncoder().encode("<html>no link</html>");
+    expect((await signed("PUT", "/internal/haifa/cache/debug/GetDocumentIFN-20261102T160623.html", page)).status).toBe(200);
   });
 
   it("serves the Tel Aviv city on the main host", async () => {
