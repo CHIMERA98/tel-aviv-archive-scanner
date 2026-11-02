@@ -73,7 +73,17 @@ async def find_maps(fetcher: Fetcher, lat: float, lon: float) -> list[HistoricMa
 
 async def render(fetcher: Fetcher, historic: HistoricMap, lat: float, lon: float) -> bytes | None:
     """A JPEG of the map around the building with a marker on it, or None if the map has no tiles here."""
-    zoom = max(historic.zoom_min, min(config.MAP_ZOOM, historic.zoom_max))
+    top = max(historic.zoom_min, min(config.MAP_ZOOM, historic.zoom_max))
+    # mapwarper often has tiles only down to zoom 15-17 (deeper ones come back transparent): step out until it shows.
+    zooms = range(top, max(historic.zoom_min, top - 3) - 1, -1) if historic.folder == "mapwarper" else [top]
+    for zoom in zooms:
+        image = await _render_at(fetcher, historic, lat, lon, zoom)
+        if image is not None:
+            return image
+    return None
+
+
+async def _render_at(fetcher: Fetcher, historic: HistoricMap, lat: float, lon: float, zoom: int) -> bytes | None:
     grid = config.MAP_GRID
     fx, fy = tile_float(lon, lat, zoom)
     x0, y0 = math.floor(fx) - grid // 2, math.floor(fy) - grid // 2
@@ -86,11 +96,20 @@ async def render(fetcher: Fetcher, historic: HistoricMap, lat: float, lon: float
             return tx, ty, None
         if response.status_code != 200 or not response.headers.get("content-type", "").startswith("image"):
             return tx, ty, None  # missing tiles come back as 403/404 from the tile bucket
-        return tx, ty, Image.open(io.BytesIO(response.content)).convert("RGBA")
+        image = Image.open(io.BytesIO(response.content)).convert("RGBA")
+        # mapwarper answers outside a map's mask with fully transparent tiles: treat them as missing.
+        return tx, ty, image if image.getchannel("A").getbbox() else None
 
     tiles = await asyncio.gather(*(fetch(x0 + i, y0 + j) for i in range(grid) for j in range(grid)))
     present = [img for _, _, img in tiles if img is not None]
     if len(present) < grid:  # mostly outside this map
+        return None
+    # The building itself must be on the map, not just inside its bounding box (rotated scans leave empty corners).
+    home = next((img for tx, ty, img in tiles if (tx, ty) == (math.floor(fx), math.floor(fy))), None)
+    if home is None:
+        return None
+    hx, hy = int((fx % 1) * home.width), int((fy % 1) * home.height)
+    if home.getchannel("A").getpixel((min(hx, home.width - 1), min(hy, home.height - 1))) == 0:
         return None
 
     # MapJunction serves 512 px "retina" tiles; use whatever size the map actually has.

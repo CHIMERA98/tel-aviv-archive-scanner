@@ -73,7 +73,7 @@ const providerFor = (env: Env) =>
     tokenEndpoint: "/token",
     clientRegistrationEndpoint: "/register",
     scopesSupported: ["scan"],
-    resourceMetadata: { resource: `${env.PUBLIC_URL}/mcp`, resource_name: "Tel Aviv Archive Scanner" },
+    resourceMetadata: { resource: `${env.PUBLIC_URL}/mcp`, resource_name: "Archive Scanner" },
   }));
 
 export default {

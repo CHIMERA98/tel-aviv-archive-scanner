@@ -1,0 +1,1245 @@
+﻿<style>
+  .btn-header:after {
+    font-family: 'Glyphicons Halflings';
+    content: '\e114';
+    float: left;
+    margin-right: 15px;
+  }
+
+  .btn-header.collapsed:after {
+    content: '\e079';
+  }
+
+  .btn-header,
+  .btn-header:hover,
+  .btn-header:focus {
+    border-radius: 0;
+    border-top: 1px solid black;
+    font-weight: bold;
+    font-size: 16px;
+    text-align: right;
+    width: 100%;
+  }
+
+  .spn {
+    padding-right: 3px;
+  }
+  .tr-hidden {
+    display: none;
+  }
+</style>
+
+<script>
+  $.getScript(siteBaseURL + 'handasi2016/Scripts/Complot/Request/min/request-result.min.js');
+</script>
+
+<div class="top-nav-bar" id="top-navbar-id">
+  <h2 translatable-text>פרטי בקשה להיתר</h2>
+  <hr />
+  <section>
+    <div class="row" id="result-title-div-id">
+      <div class="col-sm-4">
+        <div class="result-title top-navbar-info-desc" translatable-text>מספר הבקשה:</div>
+        <div class="top-navbar-info-desc">2013085707</div>
+      </div>
+      <div class="col-sm-4">
+        <div class="result-title top-navbar-info-desc" translatable-text>כתובת:</div>
+        <div class="top-navbar-info-desc">שד' בן גוריון 50 חיפה</div>
+      </div>
+      <div class="col-sm-4">
+        <div class="result-title top-navbar-info-desc" translatable-text>תאריך הגשה:</div>
+        <div class="top-navbar-info-desc">19/09/2023</div>
+      </div>
+    </div>
+  </section>
+  <hr />
+
+  <div class="row hidden-xs" id="btn-group-row-id">
+    <div class="btn-group" style="width: 100%" id="btn-group-id" role="navigation" aria-label="קישור לאיזור בדף">
+      <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#info-main')"
+        value="מידע כללי"
+      />
+      <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#mahut')"
+        value="מהות"
+      />
+      <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#baaley-inyan')"
+        value="בעלי עניין"
+      />
+            <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#gushim-helkot')"
+        value="גוש וחלקה"
+      />
+            <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#events')"
+        value="אירועים"
+      />
+            <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#vaada')"
+        value="ישיבות"
+      />
+            <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#requirments')"
+        value="דרישות"
+      />
+      <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#archive')"
+        value="ארכיב מסמכים"
+      />
+    </div>
+  </div>
+</div>
+
+<nav class="navbar navbar-default navbar-fixed-top" id="sticky-nav-bar">
+  <div class="container-fluid row">
+    <div class="dropdown dropdown-pos">
+      <button
+        class="btn dropdown-toggle col-md-1 col-sm-1 col-xs-1 hidden-print"
+        id="dropdownMenu1"
+        data-toggle="dropdown"
+      >
+        <span class="glyphicon glyphicon-menu-hamburger"></span>
+        <span translatable-text>ניווט</span>
+      </button>
+
+      <div id="navbar-titles-id" class="hidden-xs">
+        <div class="navbar-titles-container">
+          <div class="navbar-title">
+            <h5 class="result-title" translatable-text>מספר הבקשה:</h5>
+            <h5>2013085707</h5>
+          </div>
+          <!-- <div class="col-md-3 col-sm-3 margin-top-navbar-info">
+            <h5>2013085707</h5>
+          </div> -->
+          <div class="navbar-title">
+            <h5 class="result-title" translatable-text>כתובת:</h5>
+            <h5>שד' בן גוריון 50 חיפה</h5>
+          </div>
+          <!-- <div class="col-md-4 col-sm-3 margin-top-navbar-info">
+            <h5>שד' בן גוריון 50 חיפה</h5>
+          </div> -->
+        </div>
+      </div>
+
+      <div class="visible-xs" id="navbar-xs-id">
+        <div class="result-title">
+          <h2>
+            <span translatable-text>פרטי בקשה</span>
+            2013085707
+          </h2>
+        </div>
+      </div>
+
+      <ul class="dropdown-menu" id="dropdown-menu-nav-id" aria-labelledby="dropdownMenu1">
+        <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#info-main')"
+            value="מידע כללי"
+          />
+        </li>
+        <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#mahut')"
+            value="מהות"
+          />
+        </li>
+        <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#baaley-inyan')"
+            value="בעלי עניין"
+          />
+        </li>
+                <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#gushim-helkot')"
+            value="גוש וחלקה"
+          />
+        </li>
+                <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#events')"
+            value="אירועים"
+          />
+        </li>
+                <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#vaada')"
+            value="ישיבות"
+          />
+        </li>
+                <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#requirments')"
+            value="דרישות"
+          />
+        </li>
+        <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#archive')"
+            value="ארכיב מסמכים"
+          />
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="row" id="info-main" tabindex="-1">
+  <div>
+    <h3 class="result-title result-title-bottom" translatable-text>מידע כללי</h3>
+  </div>
+
+  <table class="table table-condensed" role="presentation">
+    <tbody>
+      <tr>
+        <td class="title" translatable-text>מספר תיק בניין</td>
+        <td>
+          <a href="javascript:getBuilding(20130857)">20130857</a>
+        </td>
+      </tr>
+
+      <tr>
+        <td class="title" translatable-text>מספר הבקשה ברישוי זמין</td>
+        <td>10000279680</td>
+      </tr>
+
+      <tr>
+        <td class="title" translatable-text>סוג הבקשה</td>
+        <td>בקשה להיתר - ללא הקלות</td>
+      </tr>
+
+      <tr>
+        <td class="title" translatable-text>שימוש עיקרי</td>
+        <td>מלונאות</td>
+      </tr>
+
+      <tr>
+        <td class="title" translatable-text>תיאור הבקשה</td>
+        <td>תוספת בניה</td>
+      </tr>
+
+            <tr>
+        <td class="title" translatable-text>מטפל</td>
+        <td>ענבל חצבני</td>
+      </tr>
+      
+            <tr>
+        <td class="title" translatable-text>מספר היתר</td>
+        <td>2013085707</td>
+      </tr>
+
+      <tr>
+        <td class="title" translatable-text>תאריך הפקת היתר</td>
+        <td>15/09/2025</td>
+      </tr>
+      
+      <tr>
+        <td class="title" translatable-text>שטח עיקרי</td>
+        <td></td>
+      </tr>
+
+      <tr>
+        <td class="title" translatable-text>שטח שירות</td>
+        <td></td>
+      </tr>
+
+      <tr>
+        <td class="title" translatable-text>סך מספר יחידות דיור המבוקשות</td>
+        <td></td>
+      </tr>
+
+      
+      
+      
+          </tbody>
+  </table>
+</div>
+
+<div class="row" id="mahut" tabindex="-1">
+  <div>
+    <h3 class="result-title result-title-bottom" translatable-text>מהות הבקשה</h3>
+  </div>
+
+  <table class="table table-condensed" role="presentation">
+    <tbody>
+                  <tr>
+        <td>‏תכנית שינויים + מצב סופי למלון בן 163 חדרים . השינויים הינם הקמת בריכת שחייה</td>
+      </tr>
+            <tr>
+        <td>‏פנימית מקורה בתוך שטח המלון המאושר בהיתר 2013085706.</td>
+      </tr>
+                </tbody>
+  </table>
+</div>
+
+<div class="row" id="baaley-inyan" tabindex="-1">
+  <div>
+    <div
+      id="btn-baaley-inyan"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-baaley-inyan"
+      role="button"
+    >
+      <span translatable-text>בעלי עניין</span>
+      <span class="spn">(4)</span>
+    </div>
+  </div>
+  <div id="table-baaley-inyan" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header" translatable-text>סוג בעל עניין</th>
+          <th class="th-results-header" translatable-text>שם בעל עניין</th>
+        </tr>
+      </thead>
+      <tbody>
+                        <tr>
+          <td class="title">מבקש</td>
+          <td>א.ע עידן אחזקות והשקעות בע''מ</td>
+        </tr>
+                <tr>
+          <td class="title">בעל הנכס</td>
+          <td>א.ע עידן אחזקות והשקעות בע''מ</td>
+        </tr>
+                <tr>
+          <td class="title">עורך</td>
+          <td>גיא ארבל</td>
+        </tr>
+                <tr>
+          <td class="title">מתכנן שלד</td>
+          <td>רפי אנונו</td>
+        </tr>
+                      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="gushim-helkot" tabindex="-1">
+  <div>
+    <div
+      id="btn-gushim-helkot"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-gushim-helkot"
+      role="button"
+    >
+      <span translatable-text>גושים וחלקות</span>
+      <span class="spn">(5)</span>
+    </div>
+  </div>
+  <div id="table-gushim-helkot" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header"></th>
+          <th class="th-results-header" translatable-text>מספר גוש</th>
+          <th class="th-results-header" translatable-text>מספר חלקה</th>
+          <th class="th-results-header" translatable-text>מספר מגרש</th>
+          <th class="th-results-header" translatable-text>יעוד</th>
+        </tr>
+      </thead>
+      <tbody>
+                        <tr>
+          <td>
+            <a href="javascript:getGush(11676,5)"
+              ><span class="glyphicon glyphicon-modal-window black-font-color"></span
+            ></a>
+          </td>
+          <td>11676</td>
+          <td>5</td>
+          <td></td>
+          <td>שביל להולכי-רגל</td>
+        </tr>
+                <tr>
+          <td>
+            <a href="javascript:getGush(11676,6)"
+              ><span class="glyphicon glyphicon-modal-window black-font-color"></span
+            ></a>
+          </td>
+          <td>11676</td>
+          <td>6</td>
+          <td></td>
+          <td>אתר מלונאות</td>
+        </tr>
+                <tr>
+          <td>
+            <a href="javascript:getGush(11676,7)"
+              ><span class="glyphicon glyphicon-modal-window black-font-color"></span
+            ></a>
+          </td>
+          <td>11676</td>
+          <td>7</td>
+          <td></td>
+          <td>אתר מלונאות</td>
+        </tr>
+                <tr>
+          <td>
+            <a href="javascript:getGush(11676,9)"
+              ><span class="glyphicon glyphicon-modal-window black-font-color"></span
+            ></a>
+          </td>
+          <td>11676</td>
+          <td>9</td>
+          <td>2008</td>
+          <td>אתר מלונאות</td>
+        </tr>
+                <tr>
+          <td>
+            <a href="javascript:getGush(11676,36)"
+              ><span class="glyphicon glyphicon-modal-window black-font-color"></span
+            ></a>
+          </td>
+          <td>11676</td>
+          <td>36</td>
+          <td></td>
+          <td>שביל להולכי-רגל</td>
+        </tr>
+                      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="events" tabindex="-1">
+  <div>
+    <div
+      id="btn-events"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-events"
+      role="button"
+    >
+      <span translatable-text>אירועים</span>
+      <span class="spn">(39)</span>
+    </div>
+  </div>
+  <div id="table-events" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header" translatable-text>סוג אירוע</th>
+          <th class="th-results-header" translatable-text>תיאור אירוע</th>
+          <th class="th-results-header" translatable-text>תאריך אירוע</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>תאריך סיום אירוע</th>
+                    <th class="th-results-header hidden-on-mobile" translatable-text>מטפל</th>
+                            </tr>
+      </thead>
+      <tbody>
+                        <tr>
+          <td>נוכחי</td>
+          <td>אושרה בקשה בסמכות מהנדס</td>
+          <td>16/12/2025</td>
+          <td class="hidden-on-mobile"></td>
+                    <td class="hidden-on-mobile">ענת שכטר</td>
+                            </tr>
+                <tr>
+          <td>נוכחי</td>
+          <td>טרם התחילו</td>
+          <td>20/11/2025</td>
+          <td class="hidden-on-mobile"></td>
+                    <td class="hidden-on-mobile">אלכסנדר צביבק - פיקוח*</td>
+                            </tr>
+                <tr>
+          <td>נוכחי</td>
+          <td>פקודת גביה לפקדון</td>
+          <td>25/04/2023</td>
+          <td class="hidden-on-mobile"></td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>הגשת בקשה בסמכות מהנדס</td>
+          <td>16/12/2025</td>
+          <td class="hidden-on-mobile">16/12/2025</td>
+                    <td class="hidden-on-mobile">ענת שכטר</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>הופק היתר ברישוי זמין להמשך טיפול למפקח האיזור</td>
+          <td>18/09/2025</td>
+          <td class="hidden-on-mobile">20/11/2025</td>
+                    <td class="hidden-on-mobile">אלכסנדר צביבק - פיקוח*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>סוף מסלול רישוי</td>
+          <td>18/09/2025</td>
+          <td class="hidden-on-mobile">16/12/2025</td>
+                    <td class="hidden-on-mobile">ארכיון מרכזי</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>חתימת ההיתר</td>
+          <td>18/09/2025</td>
+          <td class="hidden-on-mobile">18/09/2025</td>
+                    <td class="hidden-on-mobile">ענת שכטר</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>הכנת שליחת ההיתר</td>
+          <td>15/09/2025</td>
+          <td class="hidden-on-mobile">18/09/2025</td>
+                    <td class="hidden-on-mobile">ענת שכטר</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>קבלת תשלום אגרת בניה</td>
+          <td>11/09/2025</td>
+          <td class="hidden-on-mobile">15/09/2025</td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>שליחת דרישות התשלום למבקש ההיתר</td>
+          <td>10/09/2025</td>
+          <td class="hidden-on-mobile">11/09/2025</td>
+                    <td class="hidden-on-mobile">ענבל חצבני</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>הפקת פקודת גביה</td>
+          <td>09/09/2025</td>
+          <td class="hidden-on-mobile">10/09/2025</td>
+                    <td class="hidden-on-mobile">ענת שכטר</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>מענה מחלקות לאגרות</td>
+          <td>09/09/2025</td>
+          <td class="hidden-on-mobile">09/09/2025</td>
+                    <td class="hidden-on-mobile">ענת שכטר</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בקרת תכן תקינה</td>
+          <td>09/09/2025</td>
+          <td class="hidden-on-mobile">09/09/2025</td>
+                    <td class="hidden-on-mobile">ענבל חצבני</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>המתנה לתשובה ממחלקות (אגרות)</td>
+          <td>26/08/2025</td>
+          <td class="hidden-on-mobile">09/09/2025</td>
+                    <td class="hidden-on-mobile">ענת שכטר</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>חישוב אגרות בניה</td>
+          <td>10/07/2025</td>
+          <td class="hidden-on-mobile">26/08/2025</td>
+                    <td class="hidden-on-mobile">יחיד (אמסלם) יעל</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בקרת תכן תקינה</td>
+          <td>10/07/2025</td>
+          <td class="hidden-on-mobile">10/07/2025</td>
+                    <td class="hidden-on-mobile">ענבל חצבני</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בקרת תכן אינה תקינה</td>
+          <td>10/07/2025</td>
+          <td class="hidden-on-mobile">10/07/2025</td>
+                    <td class="hidden-on-mobile">ענבל חצבני</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בדיקת הבקשה והתאמתה להחלטת הוועדה</td>
+          <td>18/06/2025</td>
+          <td class="hidden-on-mobile">06/07/2025</td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>דיון בועדת משנה</td>
+          <td>01/07/2024</td>
+          <td class="hidden-on-mobile">18/11/2024</td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>החלטה לאשר את הבקשה בתנאים</td>
+          <td>01/07/2024</td>
+          <td class="hidden-on-mobile">01/07/2024</td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>שובץ לדיון בועדת משנה</td>
+          <td>24/06/2024</td>
+          <td class="hidden-on-mobile">01/07/2024</td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>עמידה בתנאי בקרה מרחבית - ועדת משנה</td>
+          <td>18/06/2024</td>
+          <td class="hidden-on-mobile">24/06/2024</td>
+                    <td class="hidden-on-mobile">אהובי בלוך - מנהלת וועדה*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>תכתובת כללית</td>
+          <td>18/06/2024</td>
+          <td class="hidden-on-mobile">18/06/2024</td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>תכתובת כללית</td>
+          <td>13/06/2024</td>
+          <td class="hidden-on-mobile">18/06/2024</td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>העברה לעורך לתיקון תוכניות - בקרה מרחבית</td>
+          <td>28/03/2024</td>
+          <td class="hidden-on-mobile">13/06/2024</td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>עמידה בתנאים מוקדמים ומעבר לבדיקה מרחבית</td>
+          <td>28/03/2024</td>
+          <td class="hidden-on-mobile">28/03/2024</td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>אי עמידה בתנאי סף והפקת מכתב לעורך הבקשה</td>
+          <td>29/01/2024</td>
+          <td class="hidden-on-mobile">28/03/2024</td>
+                    <td class="hidden-on-mobile">שקד דמרי*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בדיקה יסודית</td>
+          <td>25/01/2024</td>
+          <td class="hidden-on-mobile">29/01/2024</td>
+                    <td class="hidden-on-mobile">שקד דמרי*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בקשה להיתר - אמות באתר ע"י הפיקוח</td>
+          <td>21/01/2024</td>
+          <td class="hidden-on-mobile">25/01/2024</td>
+                    <td class="hidden-on-mobile">אלכסנדר צביבק - פיקוח*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>אי עמידה בתנאי סף והפקת מכתב לעורך הבקשה</td>
+          <td>17/12/2023</td>
+          <td class="hidden-on-mobile">21/01/2024</td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בקשה להיתר - אמות באתר ע"י הפיקוח</td>
+          <td>13/12/2023</td>
+          <td class="hidden-on-mobile">17/12/2023</td>
+                    <td class="hidden-on-mobile">אלכסנדר צביבק - פיקוח*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>אי עמידה בתנאי סף והפקת מכתב לעורך הבקשה</td>
+          <td>05/12/2023</td>
+          <td class="hidden-on-mobile">13/12/2023</td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בדיקה יסודית</td>
+          <td>27/11/2023</td>
+          <td class="hidden-on-mobile">05/12/2023</td>
+                    <td class="hidden-on-mobile">שקד דמרי*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בקשה להיתר - אמות באתר ע"י הפיקוח</td>
+          <td>22/11/2023</td>
+          <td class="hidden-on-mobile">27/11/2023</td>
+                    <td class="hidden-on-mobile">אלכסנדר צביבק - פיקוח*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>אי עמידה בתנאי סף והפקת מכתב לעורך הבקשה</td>
+          <td>21/11/2023</td>
+          <td class="hidden-on-mobile">22/11/2023</td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בקשה להיתר - העברה להתייחסות פיקוח</td>
+          <td>19/09/2023</td>
+          <td class="hidden-on-mobile">08/10/2023</td>
+                    <td class="hidden-on-mobile">אלכסנדר צביבק - פיקוח*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>ניתוב הבקשה לבדיקת תנאים מוקדמים</td>
+          <td>19/09/2023</td>
+          <td class="hidden-on-mobile">19/09/2023</td>
+                    <td class="hidden-on-mobile">מרעי פידא*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>קבלת בקשה להיתר</td>
+          <td>19/09/2023</td>
+          <td class="hidden-on-mobile">19/09/2023</td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>תאריך פתיחת בקשה להיתר ברישוי זמין</td>
+          <td>18/09/2023</td>
+          <td class="hidden-on-mobile">19/09/2023</td>
+                    <td class="hidden-on-mobile">רשל ממן</td>
+                            </tr>
+                      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="vaada" tabindex="-1">
+  <div>
+    <div
+      id="btn-meetings"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-meetings"
+      role="button"
+    >
+      <span translatable-text>ישיבות והחלטות הועדה</span>
+      <span class="spn">(1)</span>
+    </div>
+  </div>
+  <div id="table-meetings" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header"></th>
+          <th class="th-results-header" translatable-text>שם הועדה</th>
+          <th class="th-results-header" translatable-text>מספר ישיבה</th>
+          <th class="th-results-header" translatable-text>תאריך ישיבה</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>יום בשבוע</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>שעה</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>תאריך עברי</th>
+        </tr>
+      </thead>
+      <tbody>
+                        <tr
+          data-toggle="collapse"
+          data-target="#311"
+          class="accordion-toggle collapsed"
+          tabindex="0"
+          aria-expanded="false"
+          aria-label="פרטי ועדת משנה של הועדה המקומית מספר 11"
+        >
+          <td></td>
+          <td>ועדת משנה של הועדה המקומית</td>
+          <td>
+            <a href="javascript:getMeeting(3,11)">11</a>
+          </td>
+          <td>01/07/2024</td>
+          <td class="hidden-on-mobile">ב</td>
+          <td class="hidden-on-mobile">16:00</td>
+          <td class="hidden-on-mobile">כ"ה סיון, תשפ"ד</td>
+        </tr>
+        <tr>
+          <td colspan="7" class="hiddenRow">
+            <div class="accordian-body collapse" id="311">
+              <table class="table table-condensed" role="presentation">
+                <thead>
+                  <tr>
+                    <th class="title vaada-title" translatable-text>מהות</th>
+                  </tr>
+                </thead>
+                <tbody>
+                                    <tr>
+                    <td>=====================================================</td>
+                  </tr>
+                                    <tr>
+                    <td>תכנית שינויים + מצב סופי למלון בן 163 חדרים . השינויים הינם הקמת בריכת שחייה</td>
+                  </tr>
+                                    <tr>
+                    <td>פנימית מקורה בתוך שטח המלון המאושר בהיתר 2013085706.</td>
+                  </tr>
+                                    <tr>
+                    <td>=====================================================</td>
+                  </tr>
+                                  </tbody>
+              </table>
+              <table class="table table-condensed" role="presentation">
+                <thead>
+                  <tr>
+                    <th class="title vaada-title">
+                      <span translatable-text>החלטות</span>
+                                          </th>
+                  </tr>
+                </thead>
+                <tbody>
+                                    <tr>
+                    <td>לאשר את הבקשה בתנאים הבאים:</td>
+                  </tr>
+                                    <tr>
+                    <td>1.תנאים לשלב בקרת התכן:</td>
+                  </tr>
+                                    <tr>
+                    <td>א.אישור איגוד ערים ואיכות הסביבה עבור בריכת השחייה המוצעת.</td>
+                  </tr>
+                                    <tr>
+                    <td>ב.אישור משרד הבריאות עבור בריכת השחייה המוצעת.</td>
+                  </tr>
+                                    <tr>
+                    <td>ג.  יובא אישור קונס' וחישובים סטטיים לשינויים המוצעים</td>
+                  </tr>
+                                    <tr>
+                    <td>ד.יובא אישור כב"א מעודכן</td>
+                  </tr>
+                                    <tr>
+                    <td>ה.יובא אישור קבלן רשום בתוקף</td>
+                  </tr>
+                                    <tr>
+                    <td>ו.ישולם היטל השבחה כחוק לפי שמאי העירייה.</td>
+                  </tr>
+                                    <tr>
+                    <td>ז.ישולמו דמי השתתפות בהתקנת  בגין 2 מק' חניה חסרים  ונדרש לבקשה ועפ"' תעריף</td>
+                  </tr>
+                                    <tr>
+                    <td>שייקבע על ידי העירייה.</td>
+                  </tr>
+                                    <tr>
+                    <td>&nbsp</td>
+                  </tr>
+                                    <tr>
+                    <td>2.תנאים בהיתר:</td>
+                  </tr>
+                                    <tr>
+                    <td>כתנאי בהיתר הבניה -  כל השטחים הגובלים יתוקנו וישוקמו בטרם מתן תעודת גמר</td>
+                  </tr>
+                                    <tr>
+                    <td>למבנה.</td>
+                  </tr>
+                                    <tr>
+                    <td>&nbsp</td>
+                  </tr>
+                                    <tr>
+                    <td>ובכפוף לאותם התנאים בהיתרים מספר 2013085706,2013085705,2013085704.</td>
+                  </tr>
+                                    <tr>
+                    <td>&nbsp</td>
+                  </tr>
+                                  </tbody>
+              </table>
+            </div>
+          </td>
+        </tr>
+                      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="requirments" tabindex="-1">
+  <div>
+    <div
+      id="btn-requirments"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-requirments"
+      role="button"
+    >
+      <span translatable-text>גליון דרישות</span>
+      <span class="spn">(2)</span>
+    </div>
+  </div>
+  <div id="table-requirments" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header" translatable-text>דרישה</th>
+          <th class="th-results-header" translatable-text>סטטוס</th>
+          <th class="th-results-header" translatable-text>תאריך</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>
+            הערות
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+                                <tr>
+          <td colspan="4">
+            <strong>מחלקת דרכים - חישוב אגרות</strong>
+          </td>
+        </tr>
+                        <tr class="">
+          <td>מחלקת דרכים - תזכיר חישוב אגרות</td>
+          <td class="no-wrap">הושלם</td>
+          <td>10/09/2025</td>
+          <td class="hidden-on-mobile">
+                        <button
+              href="#modal-window"
+              data-toggle="modal"
+              data-keyboard="true"
+              class="btn btn-default btn-xs black-font-color"
+              onclick="showDrishaRemarks(this, 920942)"
+              aria-haspopup="true"
+              aria-label="הערות לדרישה"
+            >
+              <span class="glyphicon glyphicon-info-sign"></span>
+            </button>
+                      </td>
+        </tr>
+        
+                        <tr>
+          <td colspan="4">
+            <strong>מחלקת תקבולים - חישוב אגרות</strong>
+          </td>
+        </tr>
+                
+        <tr class="">
+          <td>מחלקת תקבולים - תזכיר חישוב אגרות</td>
+          <td class="no-wrap">הושלם</td>
+          <td>09/09/2025</td>
+          <td class="hidden-on-mobile">
+                        <button
+              href="#modal-window"
+              data-toggle="modal"
+              data-keyboard="true"
+              class="btn btn-default btn-xs black-font-color"
+              onclick="showDrishaRemarks(this, 920864)"
+              aria-haspopup="true"
+              aria-label="הערות לדרישה"
+            >
+              <span class="glyphicon glyphicon-info-sign"></span>
+            </button>
+                      </td>
+        </tr>
+                
+              </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="agrot" tabindex="-1">
+  <div>
+    <div
+      id="btn-agrot"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-agrot"
+      role="button"
+    >
+      <span translatable-text>סעיפי אגרה</span>
+      <span class="spn">(2)</span>
+    </div>
+  </div>
+  <div id="table-agrot" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th translatable-text>סעיף</th>
+          <th translatable-text>תאור אגרה/היטל</th>
+          <th translatable-text>כמות</th>
+          <th class="hidden-on-mobile" translatable-text>יחידה</th>
+          <th translatable-text>מחיר ליחידה</th>
+          <th translatable-text>סכום</th>
+        </tr>
+      </thead>
+      <tbody>
+                        <tr>
+          <td>1.00.800</td>
+          <td>כל עבודה הטעונה היתר</td>
+          <td>1.00</td>
+          <td class="hidden-on-mobile"></td>
+          <td>348.62</td>
+          <td>348.62</td>
+        </tr>
+                <tr>
+          <td>330040</td>
+          <td>כופר חנייה אזור 4 עסקי (60319200001)</td>
+          <td>2.00</td>
+          <td class="hidden-on-mobile">מ"ר</td>
+          <td>8,944.91</td>
+          <td>17,889.80</td>
+        </tr>
+                <tr class="hidden-on-mobile">
+          <td colspan="5"></td>
+          <td id="request-result-agra-sum">18,238.80</td>
+        </tr>
+              </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="archive" tabindex="-1">
+  <div>
+    <div
+      id="btn-archive"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-archive"
+      role="button"
+    >
+      <span translatable-text>ארכיב מסמכים</span>
+      <span class="spn">(8)</span>
+    </div>
+  </div>
+  <div id="table-archive" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header" translatable-text>שם המסמך</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>נושא</th>
+                  </tr>
+      </thead>
+      <tbody>
+                                <tr>
+                    <td>
+            <a href="javascript:showIFNFile('{F04FD286-C3A8-4E75-9822-F69556D1F6C9}')"
+              ><span class="glyphicon glyphicon-file"></span>
+              היתר בניה חתום</a
+            >
+          </td>
+                    <td class="hidden-on-mobile">היתר בניה</td>
+                    <td>18/09/2025</td>
+                  </tr>
+                <tr>
+                    <td>
+            <a href="javascript:showIFNFile('{1C879E6D-3BCA-4CF3-A9B7-7E1A2CD0780A}')"
+              ><span class="glyphicon glyphicon-file"></span>
+              מכתב החלטה</a
+            >
+          </td>
+                    <td class="hidden-on-mobile">כתובות החלטות ופרוטוקולים של מוסדות התכנון</td>
+                    <td>07/07/2024</td>
+                  </tr>
+                <tr>
+                    <td>
+            <a href="javascript:showIFNFile('{0F49F58C-602C-485D-B218-D66B1E37AB4A}')"
+              ><span class="glyphicon glyphicon-file"></span>
+              גרמושקה לחישוב אגרות</a
+            >
+          </td>
+                    <td class="hidden-on-mobile">שרטוטים  ותרשימים</td>
+                    <td>10/07/2025</td>
+                  </tr>
+                <tr>
+                    <td>
+            <a href="javascript:showIFNFile('{B957B12C-3D4D-4EF0-9F5A-68E36833F6D8}')"
+              ><span class="glyphicon glyphicon-file"></span>
+              סמכות מהנדס חתומה</a
+            >
+          </td>
+                    <td class="hidden-on-mobile">שרטוטים  ותרשימים</td>
+                    <td>16/12/2025</td>
+                  </tr>
+                <tr>
+                    <td>
+            <a href="javascript:showIFNFile('{F900F544-1B7E-4364-8DC2-312B63BF3D77}')"
+              ><span class="glyphicon glyphicon-file"></span>
+              תכנית היתר חתומה</a
+            >
+          </td>
+                    <td class="hidden-on-mobile">שרטוטים  ותרשימים</td>
+                    <td>18/09/2025</td>
+                  </tr>
+                <tr>
+                    <td>
+            <a href="javascript:showIFNFile('{A8CEF9E7-D449-484C-AA95-2AF06CAE7732}')"
+              ><span class="glyphicon glyphicon-file"></span>
+              תכנית עדכנית לפיקוח</a
+            >
+          </td>
+                    <td class="hidden-on-mobile">שרטוטים  ותרשימים</td>
+                    <td>23/01/2024</td>
+                  </tr>
+                <tr>
+                    <td>
+            <a href="javascript:showIFNFile('{B60A4E4B-A853-4C73-99D1-599D0A69C8D0}')"
+              ><span class="glyphicon glyphicon-file"></span>
+              תכנית לפיקוח</a
+            >
+          </td>
+                    <td class="hidden-on-mobile">שרטוטים  ותרשימים</td>
+                    <td>23/01/2024</td>
+                  </tr>
+                <tr>
+                    <td>
+            <a href="javascript:showIFNFile('{00A90DDF-CC04-415D-B293-D50D01C45588}')"
+              ><span class="glyphicon glyphicon-file"></span>
+              תכנית ראשית</a
+            >
+          </td>
+                    <td class="hidden-on-mobile">שרטוטים  ותרשימים</td>
+                    <td>19/09/2023</td>
+                  </tr>
+                
+        
+                      </tbody>
+    </table>
+  </div>
+</div>
+
+<br />
+
+<button id="print-btn" class="btn btn-primary hidden-xs">
+  <span class="glyphicon glyphicon-print"></span>
+  &nbsp;
+  <span translatable-text>הדפסה</span>
+</button>
+
+&nbsp;&nbsp;&nbsp;
+
+<button
+  id="mail-btn"
+  class="btn btn-primary hidden-xs"
+  data-toggle="modal"
+  data-target="#mailModal"
+  data-keyboard="true"
+  onclick="$('#mailAddress').val('')"
+>
+  <span class="glyphicon glyphicon-envelope"></span>
+  &nbsp;
+  <span translatable-text>שליחת מייל</span>
+</button>
+
+<!-- Modal -->
+<div class="modal fade" id="mailModal" role="dialog" aria-hidden="true" tabindex="-1">
+  <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">שליחת מייל</h3>
+      </div>
+      <div dir="rtl" class="modal-body">
+        <form>
+          <div class="form-group">
+            <label for="mailAddress" class="col-form-label">כתובת המייל:</label>
+            <input dir="ltr" type="text" class="form-control" style="width: 100%" id="mailAddress" />
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">בטל</button>
+        <button type="button" class="btn btn-primary" onclick="btnSendMail_Clicked(2013085707)">שלח</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button
+  translatable-title
+  translatable-bs-title
+  id="back-to-top"
+  href="#"
+  class="btn btn-primary scroll-back-to-top"
+  title="חזרה לראש הדף"
+  onClick="scrollToElement(MAIN_CONTAINER_SELECTOR,500); return false;"
+  data-toggle="tooltip"
+  data-placement="left"
+>
+  <span class="glyphicon glyphicon-chevron-up"></span>
+</button>
+
+<script>
+
+  $(function() {
+    $(MAIN_CONTAINER_SELECTOR).find("#btn-baaley-inyan,#btn-gushim-helkot,#btn-meetings,#btn-requirments,#btn-agrot").click();
+  });
+
+  function toggelDrishot(elm, clss) {
+  	var tr = $(elm);
+  	if (tr.hasClass('collapsed')) {
+  		tr.removeClass('collapsed');
+  	} else {
+  		tr.addClass('collapsed');
+  	}
+  	$('#table-requirments').find('tr.' + clss).toggle();
+  }
+
+  function showDrishaRemarks(elm, numerator) {
+  	var siteId = getSiteId();
+  	var urlformat = "{0}ShowRemark&siteid={1}&r={2}&arguments=siteid,r";
+  	var url = urlformat.format(xpaBaseURL, siteId, numerator);
+
+  	goTo(url, '#modalcontent');
+
+  	$("#modal-window").on('hidden.bs.modal', function (e) {
+  		$(elm).focus();
+  	});
+  }
+</script>

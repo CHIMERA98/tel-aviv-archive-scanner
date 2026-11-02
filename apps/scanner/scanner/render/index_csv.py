@@ -20,6 +20,7 @@ COLUMNS = (
     "file",
     "original_url",
     "note",
+    "status",
 )
 
 

@@ -23,7 +23,7 @@ def _new_deck(title: str) -> PresentationType:
     prs = Presentation()
     prs.slide_width, prs.slide_height = SLIDE_W, SLIDE_H
     prs.core_properties.title = title
-    prs.core_properties.author = "Tel Aviv Archive Scanner"
+    prs.core_properties.author = "Archive Scanner"
     return prs
 
 
@@ -90,6 +90,10 @@ def _index_slides(prs: PresentationType, heading: str, lines: list[str]) -> None
         _text(slide, Inches(0.8), Inches(1.3), Inches(11.7), Inches(5.9), [(line, 15, False) for line in chunk])
 
 
+def _map_source(doc: Document) -> str:
+    return "mapwarper.net" if "mapwarper" in (doc.original_url or "") else "MapJunction"
+
+
 def _doc_date(doc: Document) -> str:
     if doc.date:
         return doc.date.strftime("%d.%m.%Y")
@@ -104,7 +108,7 @@ def build_archive_deck(manifest: ScanManifest, root: Path, dest: Path) -> None:
         manifest.address.label_he,
         f"ארכיון הנדסה · תיק {manifest.archive_folder_no or '—'} · {len(docs)} מסמכים",
     )
-    _index_slides(prs, "מסמכים", [f"{d.doc_id} · {d.doc_type or d.title} · {_doc_date(d)}" for d in docs])
+    _index_slides(prs, "מסמכים", [f"{d.doc_id} · {d.title} · {_doc_date(d)}" for d in docs])
     for doc in docs:
         slide = _blank(prs)
         _text(
@@ -113,13 +117,17 @@ def build_archive_deck(manifest: ScanManifest, root: Path, dest: Path) -> None:
             Inches(0.35),
             Inches(12.1),
             Inches(0.9),
-            [(f"{doc.doc_id} · {doc.doc_type or doc.title}", 24, True)],
+            [(f"{doc.doc_id} · {doc.title}", 24, True)],
         )
         details = [(f"תאריך: {_doc_date(doc)}", 16, False), (f"עמודים: {doc.pages}", 16, False)]
         if doc.permit_no:
             details.append((f"מספר היתר: {doc.permit_no}", 16, False))
         if doc.request_no:
             details.append((f"מספר בקשה: {doc.request_no}", 16, False))
+        if doc.doc_type and doc.doc_type != doc.title:
+            details.append((f"נושא: {doc.doc_type}", 16, False))
+        if doc.status != "ready":
+            details.append(("הקובץ לא הורד — פתחו את הקישור", 16, False))
         _text(slide, Inches(7.6), Inches(1.4), Inches(5.1), Inches(4.5), details, link=doc.original_url)
         if doc.page_images:
             _picture(slide, root / doc.page_images[0], Inches(0.6), Inches(1.3), Inches(6.6), Inches(5.9))
@@ -161,7 +169,13 @@ def build_maps_plans_deck(manifest: ScanManifest, root: Path, dest: Path) -> Non
             Inches(7.05),
             Inches(12.1),
             Inches(0.4),
-            [("מקור: MapJunction · עיגול אדום = המבנה", 11, False)],
+            [
+                (
+                    f"מקור: {_map_source(doc)} · עיגול אדום = המבנה",
+                    11,
+                    False,
+                )
+            ],
             color=MUTED,
         )
 

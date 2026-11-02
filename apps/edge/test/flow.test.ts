@@ -19,7 +19,16 @@ beforeAll(async () => {
   testEnv = { ...env, GCP_SA_KEY: JSON.stringify({ client_email: "dispatch@test.iam", private_key: pem }) } as Env;
 });
 
-const building = (id: number) => ({ building_id: id, x: 1, y: 2, lat: 32.06, lon: 34.77, outline: [], year_built: 1946 });
+const building = (id: number) => ({
+  key: `tel-aviv:${id}`,
+  building_id: id,
+  x: 1,
+  y: 2,
+  lat: 32.06,
+  lon: 34.77,
+  outline: [],
+  year_built: 1946,
+});
 const address = (n: number) => ({ label_he: `הגר"א ${n}`, label_en: `Haghara ${n}`, street_code: 384, house_number: n });
 
 const fakeFetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

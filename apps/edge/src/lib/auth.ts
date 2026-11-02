@@ -66,6 +66,7 @@ export const startSession = async (c: Context<AppContext>, userId: string): Prom
     sameSite: "Lax",
     path: "/",
     maxAge: SESSION_DAYS * 86400,
+    ...cookieDomain(c),
   });
 };
 
@@ -84,4 +85,15 @@ export const endSession = async (c: Context<AppContext>): Promise<void> => {
   const id = getCookie(c, SESSION_COOKIE);
   if (id) await c.env.DB.prepare("DELETE FROM sessions WHERE id_hash = ?").bind(await sha256Hex(id)).run();
   deleteCookie(c, SESSION_COOKIE, { path: "/" });
+  if (cookieDomain(c).domain) deleteCookie(c, SESSION_COOKIE, { path: "/", ...cookieDomain(c) });
+};
+
+/**
+ * One sign-in for the Tel Aviv and Haifa hosts: the cookie belongs to the parent domain when the site runs under it.
+ * Checked against PUBLIC_URL, not the request: `wrangler dev` reports the production host for localhost requests.
+ */
+const cookieDomain = (c: Context<AppContext>): { domain?: string } => {
+  const domain = c.env.COOKIE_DOMAIN;
+  const under = (host: string) => !!domain && (host === domain.replace(/^\./, "") || host.endsWith(domain));
+  return under(new URL(c.env.PUBLIC_URL).hostname) && under(new URL(c.req.url).hostname) ? { domain } : {};
 };

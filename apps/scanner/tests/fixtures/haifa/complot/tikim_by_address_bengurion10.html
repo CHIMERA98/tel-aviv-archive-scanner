@@ -1,0 +1,125 @@
+﻿<script>
+  $.getScript(siteBaseURL + 'handasi2016/Scripts/Complot/Building/building-list.js');
+</script>
+
+<div id="buildung-list-container" style="display: none">
+  <h2 translatable-text>תוצאות איתור תיקי בניין</h2>
+
+    <hr id="search-result-heading-hr" />
+    <p>
+    <span translatable-text>נמצאו</span>
+         3
+    <span translatable-text>תיקי בניין</span>
+  </p>
+    <table class="table table-hover" id="results-table">
+    <thead class="complot-thead">
+      <tr translatable-title translatable-bs-title data-toggle="tooltip" title="ניתן ללחוץ על מנת למיין לפי עמודה">
+        <th></th>
+        <th translatable-text>תיק בניין</th>
+        <th translatable-text>כתובת</th>
+                <th class="hidden-on-mobile" translatable-text>גוש</th>
+        <th class="hidden-on-mobile" translatable-text>חלקה</th>
+                <th class="hidden-on-mobile" translatable-text>מגרש</th>
+        <th class="center-text" translatable-text>ארכיב מסמכים</th>
+      </tr>
+    </thead>
+    <tbody>
+            <tr>
+        <td>
+          <a
+            onclick="disableDocButton(this)"
+            href="javascript:getBuilding(334477)"
+            aria-label="הצגת תיק הבניין"
+            ><span class="glyphicon glyphicon-new-window black-font-color"></span
+          ></a>
+        </td>
+        <td>
+          <a onclick="disableDocButton(this)" href="javascript:getBuilding(334477)">334477</a>
+        </td>
+        <td>שד' בן גוריון 10 חיפה</td>
+                <td class="hidden-on-mobile">10830</td>
+        <td class="hidden-on-mobile">5</td>
+                <td class="hidden-on-mobile"></td>
+        <td class="center-text">
+                              <button
+            href="#modal-window"
+            data-toggle="modal"
+            data-keyboard="true"
+            class="btn btn-default btn-xs black-font-color openBtn"
+            onClick="showTikDocs(334477, this)"
+            aria-haspopup="true"
+            aria-label="ארכיב מסמכים עבור תיק בניין 334477"
+          >
+            <span class="glyphicon glyphicon-file black-font-color archive-btn-id"></span>
+          </button>
+                            </td>
+      </tr>
+            <tr>
+        <td>
+          <a
+            onclick="disableDocButton(this)"
+            href="javascript:getBuilding(345544)"
+            aria-label="הצגת תיק הבניין"
+            ><span class="glyphicon glyphicon-new-window black-font-color"></span
+          ></a>
+        </td>
+        <td>
+          <a onclick="disableDocButton(this)" href="javascript:getBuilding(345544)">345544</a>
+        </td>
+        <td>שד' בן גוריון 10 חיפה</td>
+                <td class="hidden-on-mobile">10830</td>
+        <td class="hidden-on-mobile">5</td>
+                <td class="hidden-on-mobile"></td>
+        <td class="center-text">
+                              <button
+            href="#modal-window"
+            data-toggle="modal"
+            data-keyboard="true"
+            class="btn btn-default btn-xs black-font-color openBtn"
+            onClick="showTikDocs(345544, this)"
+            aria-haspopup="true"
+            aria-label="ארכיב מסמכים עבור תיק בניין 345544"
+          >
+            <span class="glyphicon glyphicon-file black-font-color archive-btn-id"></span>
+          </button>
+                            </td>
+      </tr>
+            <tr>
+        <td>
+          <a
+            onclick="disableDocButton(this)"
+            href="javascript:getBuilding(482776)"
+            aria-label="הצגת תיק הבניין"
+            ><span class="glyphicon glyphicon-new-window black-font-color"></span
+          ></a>
+        </td>
+        <td>
+          <a onclick="disableDocButton(this)" href="javascript:getBuilding(482776)">482776</a>
+        </td>
+        <td>שד' בן גוריון 10 חיפה</td>
+                <td class="hidden-on-mobile">10830</td>
+        <td class="hidden-on-mobile">6</td>
+                <td class="hidden-on-mobile"></td>
+        <td class="center-text">
+                              <button
+            href="#modal-window"
+            data-toggle="modal"
+            data-keyboard="true"
+            class="btn btn-default btn-xs black-font-color openBtn"
+            onClick="showTikDocs(482776, this)"
+            aria-haspopup="true"
+            aria-label="ארכיב מסמכים עבור תיק בניין 482776"
+          >
+            <span class="glyphicon glyphicon-file black-font-color archive-btn-id"></span>
+          </button>
+                            </td>
+      </tr>
+          </tbody>
+  </table>
+  </div>
+
+<style>
+  .dataTables_wrapper .dataTables_length {
+    float: right;
+  }
+</style>

@@ -24,8 +24,8 @@ const seedDoneScan = async () => {
   const t = Math.floor(Date.now() / 1000);
   await env.DB.prepare("INSERT OR IGNORE INTO users (id, email, created_at) VALUES ('u1', 'u1@example.com', ?)").bind(t).run();
   await env.DB.prepare(
-    "INSERT OR REPLACE INTO scans (id, user_id, building_id, address_json, building_json, label_he, label_en, status, " +
-      "summary_json, queued_at, finished_at, expires_at) VALUES (?, 'u1', 2287, '{}', '{\"building_id\":2287}', 'הגר\"א 27', " +
+    "INSERT OR REPLACE INTO scans (id, user_id, building_key, building_id, address_json, building_json, label_he, label_en, status, " +
+      "summary_json, queued_at, finished_at, expires_at) VALUES (?, 'u1', 'tel-aviv:2287', 2287, '{}', '{\"building_id\":2287}', 'הגר\"א 27', " +
       "'Haghara 27', 'done', '{\"counts\":{\"archive\":2,\"plan\":0,\"map\":0}}', ?, ?, ?)",
   )
     .bind(SCAN, t, t, t + 86400)

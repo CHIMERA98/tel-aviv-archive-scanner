@@ -73,3 +73,21 @@ export const runScannerJob = async (env: Env, scanId: string): Promise<string> =
   const operation = (await response.json()) as { name?: string };
   return operation.name ?? "";
 };
+
+/** Start the single Haifa worker execution (it finds its own work through /internal/haifa/next). */
+export const runHaifaWorker = async (env: Env): Promise<string> => {
+  if (env.DEV_MODE === "1") {
+    console.log("[dev] start the Haifa worker by hand: python -m scanner.haifa_worker");
+    return "dev";
+  }
+  const job = env.GCP_HAIFA_JOB || "haifa-worker";
+  const url = `https://run.googleapis.com/v2/projects/${env.GCP_PROJECT}/locations/${env.GCP_REGION}/jobs/${job}:run`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${await accessToken(env)}`, "Content-Type": "application/json" },
+    body: "{}",
+  });
+  if (!response.ok) throw new Error(`Haifa worker start failed: ${response.status} ${await response.text()}`);
+  const operation = (await response.json()) as { name?: string };
+  return operation.name ?? "";
+};

@@ -8,9 +8,10 @@ from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
+from scanner import config
 from scanner.http import Fetcher, FileTooLargeError, SourceBlockedError
-from scanner.models import AddressMatch, Building, Document, Plan, ScanManifest
-from scanner.render import bundle, decks, index_csv, pages, prompts
+from scanner.models import AddressMatch, Building, Document, HistoricMap, Plan, ScanManifest
+from scanner.render import bundle, decks, index_csv, pages, prompts, requests_md
 from scanner.sources import gis, handasa, mapjunction, taba
 
 STAGES = ("maps", "plans", "archive", "pages", "outputs")
@@ -36,6 +37,20 @@ def _safe(name: str) -> str:
 
 async def _collect_maps(fetcher: Fetcher, building: Building, root: Path, warnings: list[str]) -> list[Document]:
     found = await mapjunction.find_maps(fetcher, building.lat, building.lon)
+    return await render_maps(
+        fetcher, found, building, root, warnings, lambda m: f"https://www.mapjunction.com/?map={m.map_id}"
+    )
+
+
+async def render_maps(
+    fetcher: Fetcher,
+    found: list[HistoricMap],
+    building: Building,
+    root: Path,
+    warnings: list[str],
+    link: Callable[[HistoricMap], str],
+) -> list[Document]:
+    """Crop each map around the building (any XYZ tile source) into maps/M-xxx.jpg."""
     rendered = await asyncio.gather(
         *(mapjunction.render(fetcher, m, building.lat, building.lon) for m in found), return_exceptions=True
     )
@@ -57,7 +72,7 @@ async def _collect_maps(fetcher: Fetcher, building: Building, root: Path, warnin
                 title=historic.title,
                 doc_type=historic.folder,
                 year=historic.year,
-                original_url=f"https://www.mapjunction.com/?map={historic.map_id}",
+                original_url=link(historic),
                 file=rel,
                 pages=1,
                 page_images=[rel],
@@ -121,6 +136,8 @@ async def _collect_plans(
 async def _collect_archive(
     fetcher: Fetcher, address: AddressMatch, building: Building, root: Path, warnings: list[str]
 ) -> tuple[str | None, list[Document]]:
+    if building.building_id is None:
+        raise ValueError("Tel Aviv archive search needs the building's id_binyan")
     records = await handasa.list_documents(fetcher, building.building_id)
     records.sort(key=lambda r: (r.date is None, r.date.isoformat() if r.date else "", r.doc_type))
 
@@ -165,11 +182,11 @@ async def _collect_archive(
     return folder_no, docs
 
 
-async def _render_pages(documents: list[Document], root: Path, warnings: list[str]) -> None:
+async def render_document_pages(documents: list[Document], root: Path, warnings: list[str]) -> None:
     slots = asyncio.Semaphore(2)
 
     async def one(doc: Document) -> None:
-        if doc.file is None or doc.source == "map":
+        if doc.file is None or doc.source == "map" or doc.page_images:
             return
         async with slots:
             try:
@@ -185,21 +202,47 @@ async def _render_pages(documents: list[Document], root: Path, warnings: list[st
     await asyncio.gather(*(one(d) for d in documents))
 
 
-def _write_outputs(manifest: ScanManifest, root: Path) -> None:
+BUNDLE_NOTE = "large file: download it on its own (not in the ZIP)"
+
+
+def bundle_skips(manifest: ScanManifest, root: Path) -> frozenset[str]:
+    """Haifa files too large for bundle.zip; they stay downloadable one by one."""
+    if manifest.city != "haifa":
+        return frozenset()
+    skip = set()
+    for doc in manifest.documents:
+        if not doc.file:
+            continue
+        size = (
+            doc.size
+            if doc.size is not None
+            else ((root / doc.file).stat().st_size if (root / doc.file).exists() else 0)
+        )
+        if size > config.HAIFA_BUNDLE_MAX_FILE_BYTES:
+            skip.add(doc.file)
+            doc.note = doc.note or BUNDLE_NOTE
+    return frozenset(skip)
+
+
+def write_outputs(manifest: ScanManifest, root: Path) -> None:
+    skip = bundle_skips(manifest, root)
     index_csv.write_index(manifest.documents, root / "index.csv")
     (root / "PROMPT.he.md").write_text(prompts.prompt_he(manifest), encoding="utf-8")
     (root / "PROMPT.en.md").write_text(prompts.prompt_en(manifest), encoding="utf-8")
     decks.build_archive_deck(manifest, root, root / "archive.pptx")
     decks.build_maps_plans_deck(manifest, root, root / "maps_plans.pptx")
-    bundle.build_bundle(root, root / "bundle.zip")
     manifest.outputs = {
         "index": "index.csv",
         "prompt_he": "PROMPT.he.md",
         "prompt_en": "PROMPT.en.md",
         "archive_deck": "archive.pptx",
         "maps_plans_deck": "maps_plans.pptx",
-        "bundle": "bundle.zip",
     }
+    if manifest.requests:
+        (root / "requests.md").write_text(requests_md.render(manifest), encoding="utf-8")
+        manifest.outputs["requests"] = "requests.md"
+    bundle.build_bundle(root, root / "bundle.zip", skip)
+    manifest.outputs["bundle"] = "bundle.zip"
     (root / "manifest.json").write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
 
 
@@ -245,7 +288,7 @@ async def run_scan(
     folder_no, archive_docs = archive or (None, [])
     documents = [*archive_docs, *plan_docs, *(maps or [])]
 
-    await stage("pages", lambda: _render_pages(documents, root, warnings), lambda _: "page images ready")
+    await stage("pages", lambda: render_document_pages(documents, root, warnings), lambda _: "page images ready")
 
     manifest = ScanManifest(
         scan_id=scan_id,
@@ -258,6 +301,6 @@ async def run_scan(
         warnings=warnings,
     )
     await progress("outputs", "running")
-    await asyncio.to_thread(_write_outputs, manifest, root)
+    await asyncio.to_thread(write_outputs, manifest, root)
     await progress("outputs", "done", "bundle ready")
     return manifest

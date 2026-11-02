@@ -3,6 +3,8 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { Buffer } from "node:buffer";
 import { z } from "zod";
 import type { Env } from "./env";
+import { baseUrl, type City, detectCity } from "./lib/cities";
+import { requestDocument } from "./lib/haifa";
 import { dispatch, quotaState, type ScanRow } from "./lib/scans";
 import { lookupMatches, publicScan, startScan } from "./routes/api";
 
@@ -27,13 +29,24 @@ export interface ManifestDocument {
   file?: string | null;
   original_url: string | null;
   note: string | null;
+  status?: "ready" | "pending" | "failed"; // Haifa documents arrive in the background
 }
 
 export interface Manifest {
   scan_id: string;
-  address: { label_he: string; gush?: number; helka?: number };
-  building: { building_id: number; year_built?: number; floors?: number };
+  city?: City;
+  address: { label_he: string; gush?: number; helka?: number; neighborhood?: string | null };
+  building: {
+    key?: string;
+    building_id?: number | null;
+    year_built?: number;
+    floors?: number;
+    height_m?: number | null;
+    conservation?: { status?: string | null; grade?: string | null; file_no?: string | null; survey?: string | null } | null;
+  };
   archive_folder_no: string | null;
+  building_files?: string[];
+  requests?: unknown[];
   plans: { plan_no: string; name: string | null; status: string | null; in_force_date: string | null }[];
   documents: ManifestDocument[];
   warnings: string[];
@@ -54,7 +67,9 @@ export const loadManifest = async (env: Env, scanId: string): Promise<{ manifest
   const row = await loadScan(env, scanId);
   if (!row) return "Unknown scan_id.";
   const scan = await publicScan({ env }, row);
-  if (scan.status !== "done") return `Scan is ${scan.status}; documents are available once it is done.`;
+  if (scan.status !== "done" && scan.status !== "filling") {
+    return `Scan is ${scan.status}; documents are available once it is done.`;
+  }
   const sourceId = scan.files_base.split("/")[2];
   const object = await env.FILES.get(`scans/${sourceId}/manifest.json`);
   if (!object) return "The scan's files have expired.";
@@ -73,13 +88,17 @@ const imageFromR2 = async (env: Env, key: string) => {
 
 export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) => {
   const server = new McpServer(
-    { name: "tel-aviv-archive-scanner", version: "1.0.0" },
+    { name: "tel-aviv-archive-scanner", version: "1.1.0" },
     {
       instructions:
-        "Research Tel Aviv-Yafo buildings from public municipal records. Typical flow: find_building → start_scan " +
-        "(uses one of the user's 3 weekly scans unless the building was scanned in the last 24h) → poll get_scan_status " +
-        "every ~30s → list_documents → get_document_pages for the few documents that matter. Documents are scans " +
-        "(mostly Hebrew, often handwritten); read the images yourself and cite doc_id and date, linking each doc_id to its link so the user can open it.",
+        "Research buildings in Tel Aviv-Yafo and Haifa from public municipal records. Typical flow: find_building → " +
+        "start_scan (uses one of the user's 3 weekly scans unless the building was scanned in the last 24h) → poll " +
+        "get_scan_status every ~30s → list_documents → get_document_pages for the few documents that matter. " +
+        "Haifa scans open after ~10–15 minutes (status \"filling\") with every document listed and the key ones " +
+        "downloaded; the rest arrive in the background, and asking for a pending one moves it to the front. Haifa " +
+        "scans also list every permit request with its events and committee decisions (requests.md). Documents are " +
+        "scans (mostly Hebrew, often handwritten); read the images yourself and cite doc_id and date, linking each " +
+        "doc_id to its link so the user can open it.",
     },
   );
 
@@ -87,20 +106,28 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
     "find_building",
     {
       title: "Find a building",
-      description: "Look up a Tel Aviv-Yafo street address (Hebrew or English, e.g. 'לבונטין 15' or 'Levontin 15').",
-      inputSchema: { address: z.string().min(3).max(120) },
+      description:
+        "Look up a street address in Tel Aviv-Yafo or Haifa (Hebrew or English, e.g. 'לבונטין 15', 'Levontin 15', " +
+        "'בן גוריון 50 חיפה'). Haifa street names are in Hebrew.",
+      inputSchema: {
+        address: z.string().min(3).max(120),
+        city: z.enum(["tel-aviv", "haifa"]).optional().describe("Default: Haifa if the address says so, else Tel Aviv"),
+      },
     },
-    async ({ address }) => {
-      const result = await lookupMatches(env, ctx, address);
+    async ({ address, city }) => {
+      const where = city ?? detectCity(address, "tel-aviv");
+      const result = await lookupMatches(env, ctx, address, where);
       if ("error" in result) return fail("Address lookup is unavailable right now; try again shortly.");
       if (!result.matches.length) return text("No matching address. Use a street name and house number.");
       return text(
         result.matches.map((m) => ({
+          city: m.city,
           address_he: m.label_he,
           address_en: m.label_en,
-          building_id: m.building.building_id,
+          building_key: m.building.key,
           year_built: m.building.year_built ?? null,
           floors: m.building.floors ?? null,
+          height_m: m.building.height_m ?? null,
           selection: m.selection,
         })),
       );
@@ -113,7 +140,8 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
       title: "Start a scan",
       description:
         "Collect historic maps, zoning plans and engineering-archive documents for a building. Pass the `selection` " +
-        "from find_building. Takes ~3–10 minutes; poll get_scan_status.",
+        "from find_building. Tel Aviv: ~3–10 minutes. Haifa: opens after ~10–15 minutes, then keeps adding " +
+        "documents. Poll get_scan_status.",
       inputSchema: { selection: z.string().min(10) },
     },
     async ({ selection }) => {
@@ -149,9 +177,10 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
         queue_position: scan.queue_position,
         stages: scan.stages,
         counts: scan.summary?.counts ?? null,
+        documents: scan.documents, // Haifa: { total, ready, pending }
         expires_at: scan.expires_at ? new Date(scan.expires_at * 1000).toISOString() : null,
         error: scan.error,
-        page: `${env.PUBLIC_URL}/en/scan/${scan.id}`,
+        page: `${baseUrl(env, row.city)}/en/scan/${scan.id}`,
       });
     },
   );
@@ -192,13 +221,21 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
           pages: d.pages,
           link: docLink(env.PUBLIC_URL, scan_id, d.doc_id),
           note: d.note ?? undefined,
+          status: d.status && d.status !== "ready" ? d.status : undefined,
+          title: d.title !== d.doc_type ? d.title : undefined,
         }));
       return text({
+        city: manifest.city ?? "tel-aviv",
         address: manifest.address.label_he,
-        building_id: manifest.building.building_id,
+        building: manifest.building.key ?? manifest.building.building_id,
         year_built: manifest.building.year_built ?? null,
+        height_m: manifest.building.height_m ?? undefined,
+        conservation: manifest.building.conservation ?? undefined,
         building_file: manifest.archive_folder_no,
         gush_helka: `${manifest.address.gush ?? "?"}/${manifest.address.helka ?? "?"}`,
+        permit_requests: manifest.requests?.length
+          ? `${manifest.requests.length} — read requests.md: ${env.PUBLIC_URL}/files/${loaded.sourceId}/requests.md`
+          : undefined,
         plans: manifest.plans,
         documents: rows,
       });
@@ -221,6 +258,17 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
       if (typeof loaded === "string") return fail(loaded);
       const doc = loaded.manifest.documents.find((d) => d.doc_id === doc_id);
       if (!doc) return fail(`No document ${doc_id} in this scan.`);
+      if (doc.status === "pending") {
+        const state = await requestDocument(env, loaded.sourceId, doc_id);
+        if (state === "queued") ctx.waitUntil(dispatch(env));
+        if (state === "queued" || state === "limit") {
+          return text(
+            `${doc_id} is still downloading from the municipal site; it has moved to the front of the queue. ` +
+              "Try again in about a minute, and meanwhile read the documents that are ready.",
+          );
+        }
+        if (state === "ready") return fail(`${doc_id} just arrived; call list_documents again, then retry.`);
+      }
       const wanted = (pages ?? [1]).filter((p) => p <= doc.page_images.length);
       if (!wanted.length) return fail(`${doc_id} has ${doc.page_images.length} page image(s).`);
       const images = await Promise.all(wanted.map((p) => imageFromR2(env, `scans/${loaded.sourceId}/${doc.page_images[p - 1]}`)));
@@ -243,7 +291,8 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
           content: {
             type: "text" as const,
             text:
-              `Analyze Tel Aviv Archive Scanner scan ${scan_id}. Call list_documents first. Group documents by date and ` +
+              `Analyze Archive Scanner scan ${scan_id}. Call list_documents first (for Haifa, also read requests.md). ` +
+              "Group documents by date and " +
               "type; identify building permits (היתר בניה), permit requests, plans and correspondence. Open only the " +
               "documents you need with get_document_pages, earliest permits first. Write a chronological history of " +
               "the building (construction, additions, changes of use, preservation), list key permits with numbers and " +

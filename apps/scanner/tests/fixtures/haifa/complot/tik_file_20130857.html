@@ -1,0 +1,422 @@
+﻿<style>
+
+.btn-header:after {
+	font-family: "Glyphicons Halflings";
+	content: "\e114";
+	float: left;
+	margin-right: 15px;
+}
+
+.btn-header.collapsed:after {
+	content: "\e079";
+}
+
+.btn-header, .btn-header:hover, .btn-header:focus { 
+	border-radius: 0;
+	border-top: 1px solid black;   
+	font-weight: bold;
+	font-size: 16px;
+	text-align: right;
+	width: 100%;
+}
+
+.spn {
+    padding-right:3px;
+}
+
+</style>
+
+<script>$.getScript(siteBaseURL + "handasi2016/Scripts/Complot/Building/min/building-result.min.js")</script>
+
+
+	<div class="top-nav-bar" id="top-navbar-id">  
+	  <h2 translatable-text>פרטי תיק בניין</h2>
+	  <hr>
+	  <section>
+		<div class="row" id="result-title-div-id">
+			<div class="col-sm-6">
+				<div class="result-title top-navbar-info-desc" translatable-text>מספר תיק בניין:</div>
+				<div class="top-navbar-info-desc">20130857</div>
+			</div>
+			<div class="col-sm-6">
+				<div class="result-title top-navbar-info-desc" translatable-text>כתובת:</div>
+				<div class="top-navbar-info-desc">שד' בן גוריון 50 חיפה</div>
+			</div>     			
+		</div>
+	  </section>
+	  <hr>
+	
+	<div class="row hidden-xs" id="btn-group-row-id">
+		<div class="btn-group" style="width: 100%" id="btn-group-id" role="navigation" aria-label="קישור לאיזור בדף">
+		  	<input role="link" type="button" class="btn btn-primary btn-responsive" onclick="scrollToElement('#info-main')" value="מידע כללי" translatable-value/>
+			<input role="link" type="button" class="btn btn-primary btn-responsive" onclick="scrollToElement('#baaley-inyan')" value="בעלי עניין" translatable-value/>
+						<input role="link" type="button" class="btn btn-primary btn-responsive" onclick="scrollToElement('#gush-helka')" value="גושים וחלקות" translatable-value/>
+						<input role="link" type="button" class="btn btn-primary btn-responsive" onclick="scrollToElement('#addresses')" value="כתובות" translatable-value/>
+			<input role="link" type="button" class="btn btn-primary btn-responsive" onclick="scrollToElement('#plans')" value="תוכניות" translatable-value/>
+			<input role="link" type="button" class="btn btn-primary btn-responsive" onclick="scrollToElement('#requests')" value="בקשות" translatable-value/>
+						<input role="link" type="button" class="btn btn-primary btn-responsive" onclick="scrollToElement('#archive')" value="ארכיב מסמכים" translatable-value/>
+		</div>		
+	</div>
+	
+	</div>
+	
+	<nav class="navbar navbar-default navbar-fixed-top" id="sticky-nav-bar">
+		<div class="container-fluid row">
+			<div class="dropdown dropdown-pos">
+				
+			  <button class="btn dropdown-toggle col-md-1 col-sm-1 col-xs-1 hidden-print" id="dropdownMenu1" data-toggle="dropdown">
+			  <span class="glyphicon glyphicon-menu-hamburger"></span>
+				<span translatable-text>ניווט</span>		
+			  </button>
+			  
+				<div id="navbar-titles-id" class="hidden-xs">
+					<div class="col-md-2 col-sm-2 margin-top-navbar-info">
+						<h5 class="result-title" translatable-text>תיק בניין:</h5>
+					</div>
+					<div class="col-md-3 col-sm-3 margin-top-navbar-info">
+						<h5>20130857</h5>
+					</div>
+					<div class="col-md-2 col-sm-2 margin-top-navbar-info">
+						<h5 class="result-title" translatable-text>כתובת:</h5>
+					</div>
+					<div class="col-md-4 col-sm-3 margin-top-navbar-info">
+						<h5>שד' בן גוריון 50 חיפה</h5>
+					</div>
+				</div>
+
+				<div class="visible-xs" id="navbar-xs-id" >
+					<div class="result-title">
+						<h2><span translatable-text>תיק בניין</span> 20130857</h2>
+					</div>
+				</div>
+				
+			  <ul class="dropdown-menu" id="dropdown-menu-nav-id" aria-labelledby="dropdownMenu1">
+				  	<li><input role="link" type="button" class="btn li-max-width" onclick="scrollToElement('#info-main')" translatable-value value="מידע כללי"/></li>
+					<li><input role="link" type="button" class="btn li-max-width" onclick="scrollToElement('#baaley-inyan')" translatable-value value="בעלי עניין"/></li>
+										<li><input role="link" type="button" class="btn li-max-width" onclick="scrollToElement('#gush-helka')" translatable-value value="גושים וחלקות"/></li>
+										<li><input role="link" type="button" class="btn li-max-width" onclick="scrollToElement('#addresses')" translatable-value  value="כתובות"/></li>
+					<li><input role="link" type="button" class="btn li-max-width" onclick="scrollToElement('#plans')" translatable-value value="תוכניות"/></li>
+					<li><input role="link" type="button" class="btn li-max-width" onclick="scrollToElement('#requests')" translatable-value value="בקשות"/></li>
+										<li><input role="link" type="button" class="btn li-max-width" onclick="scrollToElement('#archive')" translatable-value value="ארכיב מסמכים"/></li>
+			  </ul>
+			  
+			</div>
+		</div>
+	</nav>	
+		
+    <div class="row" id="info-main" tabindex=-1>
+        <div>
+            <h3 class="result-title result-title-bottom" translatable-text>מידע כללי</h3>
+        </div>
+        <table class="table table-condensed" role="presentation">
+            <tbody>
+                <tr>
+                    <td class="title" translatable-text>מספר תיק בניין</td>
+                    <td>20130857</td>
+                </tr>
+                <tr>
+                    <td class="title" translatable-text>שכונה</td>
+                    <td></td>
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+	
+    <div class="row" id="baaley-inyan" tabindex=-1>
+        <div>
+            <h3 class="result-title result-title-bottom" translatable-text>בעלי עניין</h3>
+        </div>
+        <table class="table table-condensed" role="presentation">
+            <tbody>
+                                <tr>
+                    <td translatable-text>לא נמצאו נתונים</td>
+                </tr>
+                            </tbody>
+        </table>
+    </div>
+
+    <div class="row" id="addresses" tabindex=-1>
+        <div>
+            <h3 class="result-title result-title-bottom" translatable-text>כתובות</h3>
+        </div>
+        <table class="table table-condensed">
+            <tbody>
+                                                <tr>
+                    <td>‏שד' בן גוריון 50 חיפה</td>
+                </tr>
+                                            </tbody>
+        </table>
+    </div>
+
+	    <div class="row" id="gush-helka" tabindex=-1>
+        <div>
+            <div id="btn-gushim-helkot" type="button" class="btn btn-defailt btn-header collapsed" data-toggle="collapse" data-target="#table-gushim-helkot" role="button">
+                <span translatable-text>גושים וחלקות</span>
+                <span class="spn">(5)</span>
+            </div>
+        </div>
+        <div id="table-gushim-helkot" class="collapse" style="height: 0px;">
+        <table class="table table-condensed">
+            <thead>
+                <tr>
+                    <th class="th-results-header"></th>
+                    <th class="th-results-header" translatable-text>מספר גוש</th>
+                    <th class="th-results-header" translatable-text>מספר חלקה</th>
+                    <th class="th-results-header" translatable-text>מספר מגרש</th>
+                    <th class="th-results-header" translatable-text>מספר התוכנית</th>
+                </tr>
+            </thead>
+            <tbody>
+                                                <tr>
+                    <td><a href="javascript:getGush(11676,5)"><span class="glyphicon glyphicon-modal-window black-font-color"></span></a></td>
+                    <td>11676</td>
+                    <td>5</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                                <tr>
+                    <td><a href="javascript:getGush(11676,6)"><span class="glyphicon glyphicon-modal-window black-font-color"></span></a></td>
+                    <td>11676</td>
+                    <td>6</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                                <tr>
+                    <td><a href="javascript:getGush(11676,7)"><span class="glyphicon glyphicon-modal-window black-font-color"></span></a></td>
+                    <td>11676</td>
+                    <td>7</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                                <tr>
+                    <td><a href="javascript:getGush(11676,9)"><span class="glyphicon glyphicon-modal-window black-font-color"></span></a></td>
+                    <td>11676</td>
+                    <td>9</td>
+                    <td>2008</td>
+                    <td>חפ/1796/8</td>
+                </tr>
+                                <tr>
+                    <td><a href="javascript:getGush(11676,36)"><span class="glyphicon glyphicon-modal-window black-font-color"></span></a></td>
+                    <td>11676</td>
+                    <td>36</td>
+                    <td></td>
+                    <td>חפ/1796/8</td>
+                </tr>
+                                            </tbody>
+        </table>
+        </div>
+    </div>
+	 <!-- ShowGushHelka -->
+
+    <div class="row" id="plans" tabindex="-1">
+        <div>
+            <div id="btn-taba" type="button" class="btn btn-defailt btn-header collapsed" data-toggle="collapse" data-target="#table-taba" role="button">
+                <span translatable-text>תוכניות</span>
+                <span class="spn">(1)</span>
+            </div>
+        </div>
+        <div id="table-taba" class="collapse" style="height: 0px;">
+        <table class="table table-condensed">
+            <thead>
+                <tr>
+                    <th class="th-results-header"></th>
+                    <th class="th-results-header" translatable-text>מספר התוכנית</th>
+                    <th class="th-results-header" translatable-text>שם התוכנית</th>
+                    <th class="th-results-header hidden-on-mobile" translatable-text>סטטוס התוכנית</th>
+                    <th class="th-results-header hidden-on-mobile" translatable-text>תאריך סטטוס התוכנית</th>
+                    <th class="th-results-header center-text" translatable-text>מסמכים</th>
+                </tr>
+            </thead>
+            <tbody>
+                                                <tr>
+                    <td><a href="javascript:getTaba()"><span class="glyphicon glyphicon-modal-window black-font-color"></span></a></td>
+                    <td><a href="javascript:getTaba()">לפי חפ/1796-8</a></td>
+                    <td></td>
+                    <td class="hidden-on-mobile"></td>
+                    <td class="hidden-on-mobile"></td>
+                                        <td></td>
+                                    </tr>
+                                            </tbody>
+        </table>
+        </div>
+    </div>
+		
+    <div class="row" id="requests" tabindex="-1">
+        <div>
+            <div id="btn-requests" type="button" class="btn btn-defailt btn-header collapsed" data-toggle="collapse" data-target="#table-requests" role="button">
+                <span translatable-text>בקשות</span>
+                <span class="spn">(8)</span>
+            </div>
+        </div>
+        <div id="table-requests" class="collapse" style="height: 0px;">
+        <table class="table table-condensed">
+            <thead>
+                <tr>
+                    <th class="th-results-header"></th>
+                    <th class="th-results-header" translatable-text>מספר בקשה</th>
+                    <th class="th-results-header" translatable-text>תאריך הגשה</th>
+                    <th class="th-results-header hidden-on-mobile" translatable-text>ארוע אחרון להצגה</th>
+                    <th class="th-results-header hidden-on-mobile" translatable-text>שם המבקש</th>
+                    <th class="th-results-header hidden-on-mobile" translatable-text>היתר</th>
+                    <th class="th-results-header hidden-on-mobile" translatable-text>תאריך היתר</th>
+                    <th class="th-results-header center-text" translatable-text>מסמכים</th>
+                </tr>
+            </thead>
+            <tbody>
+                                                <tr>
+                    <td><a href="javascript:getRequest(2013085700)"><span class="glyphicon glyphicon-modal-window black-font-color"></span></a></td>
+                    <td><a href="javascript:getRequest(2013085700)">2013085700</a></td>
+                    <td>02/10/2013</td>
+                    <td class="hidden-on-mobile">שינוי סוג ישויות בקשה</td>
+                    <td class="hidden-on-mobile">א. עדן השקעות בע"מ</td>
+                    <td class="hidden-on-mobile"></td>
+                    <td class="hidden-on-mobile"></td>
+                                        <td class="center-text">
+                        <button href="#modal-window" data-toggle="modal" data-keyboard="true" class="btn btn-default btn-xs black-font-color openBtn" onClick="showRequestDocs(2013085700, this)" aria-haspopup="true" aria-label="ארכיב מסמכים עבור בקשה מספר 2013085700">
+                            <span class="glyphicon glyphicon-file black-font-color archive-btn-id"/>
+                        </button>
+                    </td>
+                                    </tr>
+                                <tr>
+                    <td><a href="javascript:getRequest(2013085701)"><span class="glyphicon glyphicon-modal-window black-font-color"></span></a></td>
+                    <td><a href="javascript:getRequest(2013085701)">2013085701</a></td>
+                    <td>07/11/2013</td>
+                    <td class="hidden-on-mobile">בקשה לא פעילה</td>
+                    <td class="hidden-on-mobile">א. עדן השקעות בע"מ</td>
+                    <td class="hidden-on-mobile"></td>
+                    <td class="hidden-on-mobile"></td>
+                                        <td class="center-text">
+                        <button href="#modal-window" data-toggle="modal" data-keyboard="true" class="btn btn-default btn-xs black-font-color openBtn" onClick="showRequestDocs(2013085701, this)" aria-haspopup="true" aria-label="ארכיב מסמכים עבור בקשה מספר 2013085701">
+                            <span class="glyphicon glyphicon-file black-font-color archive-btn-id"/>
+                        </button>
+                    </td>
+                                    </tr>
+                                <tr>
+                    <td><a href="javascript:getRequest(2013085702)"><span class="glyphicon glyphicon-modal-window black-font-color"></span></a></td>
+                    <td><a href="javascript:getRequest(2013085702)">2013085702</a></td>
+                    <td>28/01/2015</td>
+                    <td class="hidden-on-mobile">בקשה לא פעילה</td>
+                    <td class="hidden-on-mobile">א. עדן השקעות בע"מ</td>
+                    <td class="hidden-on-mobile"></td>
+                    <td class="hidden-on-mobile"></td>
+                                        <td class="center-text">
+                        <button href="#modal-window" data-toggle="modal" data-keyboard="true" class="btn btn-default btn-xs black-font-color openBtn" onClick="showRequestDocs(2013085702, this)" aria-haspopup="true" aria-label="ארכיב מסמכים עבור בקשה מספר 2013085702">
+                            <span class="glyphicon glyphicon-file black-font-color archive-btn-id"/>
+                        </button>
+                    </td>
+                                    </tr>
+                                <tr>
+                    <td><a href="javascript:getRequest(2013085703)"><span class="glyphicon glyphicon-modal-window black-font-color"></span></a></td>
+                    <td><a href="javascript:getRequest(2013085703)">2013085703</a></td>
+                    <td>25/01/2016</td>
+                    <td class="hidden-on-mobile">בקשה לא פעילה</td>
+                    <td class="hidden-on-mobile">א. עדן השקעות בע"מ</td>
+                    <td class="hidden-on-mobile"></td>
+                    <td class="hidden-on-mobile"></td>
+                                        <td class="center-text">
+                        <button href="#modal-window" data-toggle="modal" data-keyboard="true" class="btn btn-default btn-xs black-font-color openBtn" onClick="showRequestDocs(2013085703, this)" aria-haspopup="true" aria-label="ארכיב מסמכים עבור בקשה מספר 2013085703">
+                            <span class="glyphicon glyphicon-file black-font-color archive-btn-id"/>
+                        </button>
+                    </td>
+                                    </tr>
+                                <tr>
+                    <td><a href="javascript:getRequest(2013085704)"><span class="glyphicon glyphicon-modal-window black-font-color"></span></a></td>
+                    <td><a href="javascript:getRequest(2013085704)">2013085704</a></td>
+                    <td>29/06/2016</td>
+                    <td class="hidden-on-mobile">סוף תת מסלול פקוח</td>
+                    <td class="hidden-on-mobile">א. עדן השקעות בע"מ</td>
+                    <td class="hidden-on-mobile">2013085704</td>
+                    <td class="hidden-on-mobile">08/03/2017</td>
+                                        <td class="center-text">
+                        <button href="#modal-window" data-toggle="modal" data-keyboard="true" class="btn btn-default btn-xs black-font-color openBtn" onClick="showRequestDocs(2013085704, this)" aria-haspopup="true" aria-label="ארכיב מסמכים עבור בקשה מספר 2013085704">
+                            <span class="glyphicon glyphicon-file black-font-color archive-btn-id"/>
+                        </button>
+                    </td>
+                                    </tr>
+                                <tr>
+                    <td><a href="javascript:getRequest(2013085705)"><span class="glyphicon glyphicon-modal-window black-font-color"></span></a></td>
+                    <td><a href="javascript:getRequest(2013085705)">2013085705</a></td>
+                    <td>25/10/2016</td>
+                    <td class="hidden-on-mobile">סוף תת מסלול פקוח</td>
+                    <td class="hidden-on-mobile">א. עדן השקעות בע"מ</td>
+                    <td class="hidden-on-mobile">2013085705</td>
+                    <td class="hidden-on-mobile">03/02/2019</td>
+                                        <td class="center-text">
+                        <button href="#modal-window" data-toggle="modal" data-keyboard="true" class="btn btn-default btn-xs black-font-color openBtn" onClick="showRequestDocs(2013085705, this)" aria-haspopup="true" aria-label="ארכיב מסמכים עבור בקשה מספר 2013085705">
+                            <span class="glyphicon glyphicon-file black-font-color archive-btn-id"/>
+                        </button>
+                    </td>
+                                    </tr>
+                                <tr>
+                    <td><a href="javascript:getRequest(2013085706)"><span class="glyphicon glyphicon-modal-window black-font-color"></span></a></td>
+                    <td><a href="javascript:getRequest(2013085706)">2013085706</a></td>
+                    <td>24/01/2021</td>
+                    <td class="hidden-on-mobile">ביקורת בשטח מפקח גנים/דרכים</td>
+                    <td class="hidden-on-mobile">א. עדן השקעות בע"מ</td>
+                    <td class="hidden-on-mobile">2013085706</td>
+                    <td class="hidden-on-mobile">29/08/2022</td>
+                                        <td class="center-text">
+                        <button href="#modal-window" data-toggle="modal" data-keyboard="true" class="btn btn-default btn-xs black-font-color openBtn" onClick="showRequestDocs(2013085706, this)" aria-haspopup="true" aria-label="ארכיב מסמכים עבור בקשה מספר 2013085706">
+                            <span class="glyphicon glyphicon-file black-font-color archive-btn-id"/>
+                        </button>
+                    </td>
+                                    </tr>
+                                <tr>
+                    <td><a href="javascript:getRequest(2013085707)"><span class="glyphicon glyphicon-modal-window black-font-color"></span></a></td>
+                    <td><a href="javascript:getRequest(2013085707)">2013085707</a></td>
+                    <td>19/09/2023</td>
+                    <td class="hidden-on-mobile">אושרה בקשה בסמכות מהנדס</td>
+                    <td class="hidden-on-mobile">א.ע עידן אחזקות והשקעות בע''מ</td>
+                    <td class="hidden-on-mobile">2013085707</td>
+                    <td class="hidden-on-mobile">15/09/2025</td>
+                                        <td class="center-text">
+                        <button href="#modal-window" data-toggle="modal" data-keyboard="true" class="btn btn-default btn-xs black-font-color openBtn" onClick="showRequestDocs(2013085707, this)" aria-haspopup="true" aria-label="ארכיב מסמכים עבור בקשה מספר 2013085707">
+                            <span class="glyphicon glyphicon-file black-font-color archive-btn-id"/>
+                        </button>
+                    </td>
+                                    </tr>
+                                            </tbody>
+        </table>
+        </div>
+    </div>
+
+	  
+    <div class="row" id="archive" tabindex=-1>
+        <div>
+            <div id="btn-archive" type="button" class="btn btn-defailt btn-header collapsed" data-toggle="collapse" data-target="#table-archive" role="button">
+                <span translatable-text>ארכיב מסמכים</span>
+                <span class="spn">(0)</span>
+            </div>
+        </div>
+        <div id="table-archive" class="collapse" style="height: 0px;">
+        <table class="table table-condensed">
+            <thead>
+                <tr>
+                    <th class="th-results-header" translatable-text>שם המסמך</th>
+                    <th class="th-results-header hidden-on-mobile" translatable-text>נושא</th>
+                                        <th class="th-results-header" translatable-text>תאריך</th>
+                </tr>
+            </thead>
+		<tbody>
+		          <tr>
+            <td colspan="3" translatable-text>לא נמצאו מסמכים לתיק בניין זה</td>
+          </tr>
+        		</tbody>            
+        </table>
+        </div>
+    </div>
+
+	<button id="print-btn" class="btn btn-primary">
+		<span class="glyphicon glyphicon-print"></span>
+		&nbsp;
+		<span translatable-text>הדפסה</span>
+	</button>
+
+  <button translatable-title translatable-bs-title id="back-to-top" href="#" class="btn btn-primary scroll-back-to-top" title="חזרה לראש הדף" onClick="scrollToElement(MAIN_CONTAINER_SELECTOR,500); return false;" data-toggle="tooltip" data-placement="left"><span class="glyphicon glyphicon-chevron-up"></span></button>
+
+<script>
+$(function() {
+  $(MAIN_CONTAINER_SELECTOR).find("#btn-gushim-helkot,#btn-taba,#btn-pikuach,#btn-archive").click();
+});
+
+</script>

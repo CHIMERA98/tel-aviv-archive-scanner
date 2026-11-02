@@ -11,8 +11,10 @@ import {
   safeReturnTo,
   startSession,
 } from "../lib/auth";
+import { baseUrl, type City, cityFromHost, detectCity, parseCity } from "../lib/cities";
 import { openJson, sealJson, signRequest } from "../lib/crypto";
-import { type Locale, scanReadyMessage, sendEmail, signInMessage } from "../lib/email";
+import { type Locale, scanCompleteMessage, scanReadyMessage, sendEmail, signInMessage } from "../lib/email";
+import { documentCounts, requestDocument } from "../lib/haifa";
 import {
   createScan,
   dispatch,
@@ -48,8 +50,9 @@ api.post("/auth/request", async (c) => {
     return c.json({ error: "bot_check_failed" }, 403);
   }
   const token = await createLoginToken(c.env, email, lang, safeReturnTo(returnTo));
-  const link = `${c.env.PUBLIC_URL}/auth/verify?token=${encodeURIComponent(token)}`;
-  c.executionCtx.waitUntil(sendEmail(c.env, signInMessage(lang, email.trim(), link)));
+  const city = cityFromHost(c.env, c.req.url);
+  const link = `${baseUrl(c.env, city)}/auth/verify?token=${encodeURIComponent(token)}`;
+  c.executionCtx.waitUntil(sendEmail(c.env, signInMessage(lang, email.trim(), link, city)));
   return c.json({ ok: true });
 });
 
@@ -68,30 +71,35 @@ api.get("/me", async (c) => {
 
 const lookupMatch = z.object({
   address: z.object({ label_he: z.string(), label_en: z.string() }).passthrough(),
-  building: z.object({ building_id: z.number().int().positive() }).passthrough().nullable(),
+  building: z
+    .object({ key: z.string().min(3).max(80), building_id: z.number().int().positive().nullish() })
+    .passthrough()
+    .nullable(),
 });
 
 export interface LookupMatch {
+  city: City;
   label_he: string;
   label_en: string;
-  building: Selection["building"] & { year_built?: number; floors?: number };
+  building: Selection["building"] & { year_built?: number; floors?: number; height_m?: number };
   selection: string;
 }
 
-/** Address -> buildings through the Tel Aviv lookup service, cached for a day. Shared by the website and MCP. */
+/** Address -> buildings through the lookup service (GIS only), cached for a day. Shared by the website and MCP. */
 export const lookupMatches = async (
   env: AppContext["Bindings"],
   ctx: ExecutionContext,
   query: string,
+  city: City = "tel-aviv",
 ): Promise<{ matches: LookupMatch[] } | { error: "lookup_unavailable" }> => {
   const q = query.trim().slice(0, 120);
   if (q.length < 3) return { matches: [] };
 
   const cache = caches.default;
-  const cacheKey = new Request(`${env.PUBLIC_URL}/__lookup?q=${encodeURIComponent(q)}`);
+  const cacheKey = new Request(`${env.PUBLIC_URL}/__lookup?city=${city}&q=${encodeURIComponent(q)}`);
   let data = (await (await cache.match(cacheKey))?.json()) as { matches: unknown[] } | undefined;
   if (!data) {
-    const path = `/lookup?q=${encodeURIComponent(q)}`;
+    const path = `/lookup?q=${encodeURIComponent(q)}&city=${city}`;
     const response = await fetch(env.LOOKUP_URL + path, {
       headers: { "X-Scanner-Signature": await signRequest(env.SCANNER_HMAC_KEY, "GET", path, "") },
       signal: AbortSignal.timeout(25_000),
@@ -106,7 +114,10 @@ export const lookupMatches = async (
     const parsed = lookupMatch.safeParse(raw);
     if (!parsed.success || !parsed.data.building) continue;
     const selection = parsed.data as Selection;
+    selection.address.city = city;
+    selection.building.city = city;
     matches.push({
+      city,
       label_he: selection.address.label_he,
       label_en: selection.address.label_en,
       building: selection.building,
@@ -116,9 +127,15 @@ export const lookupMatches = async (
   return { matches };
 };
 
+/** The city for a request: explicit, else "חיפה / Haifa" in the text, else the host's city. */
+export const requestCity = (env: AppContext["Bindings"], url: string, explicit: unknown, text: string): City =>
+  parseCity(explicit) ?? detectCity(text, cityFromHost(env, url));
+
 api.get("/lookup", async (c) => {
-  const result = await lookupMatches(c.env, c.executionCtx as ExecutionContext, c.req.query("q") ?? "");
-  return "error" in result ? c.json(result, 502) : c.json(result);
+  const q = c.req.query("q") ?? "";
+  const city = requestCity(c.env, c.req.url, c.req.query("city"), q);
+  const result = await lookupMatches(c.env, c.executionCtx as ExecutionContext, q, city);
+  return "error" in result ? c.json(result, 502) : c.json({ city, ...result });
 });
 
 // ---------- scans ----------
@@ -126,15 +143,19 @@ api.get("/lookup", async (c) => {
 export const publicScan = async (c: { env: AppContext["Bindings"] }, row: ScanRow) => {
   const source = await sourceScan(c.env, row);
   const position = await queuePosition(c.env, source);
+  const summary = source.summary_json ? JSON.parse(source.summary_json) : null;
+  const documents = row.city === "haifa" && summary ? await documentCounts(c.env, source.id, summary) : null;
   return {
     id: row.id,
+    city: row.city,
     label_he: row.label_he,
     label_en: row.label_en,
     building: JSON.parse(row.building_json),
     status: row.cached_from ? source.status : row.status,
     stages: JSON.parse(source.stages_json || "{}"),
     queue_position: position,
-    summary: source.summary_json ? JSON.parse(source.summary_json) : null,
+    summary,
+    documents, // Haifa: { total, ready, pending } while documents arrive
     error: source.error,
     reused: Boolean(row.cached_from),
     queued_at: row.queued_at,
@@ -154,8 +175,8 @@ export const startScan = async (
   const selection = await openJson<Selection & { issued: number }>(env.SESSION_KEY, selectionToken);
   if (!selection || now() - selection.issued > 3600) return { ok: false, error: "invalid_selection", status: 400 };
 
-  const reusable =
-    (await findCachedScan(env, selection.building.building_id)) ?? (await findActiveScan(env, selection.building.building_id));
+  if (!selection.building.key) return { ok: false, error: "invalid_selection", status: 400 };
+  const reusable = (await findCachedScan(env, selection.building.key)) ?? (await findActiveScan(env, selection.building.key));
   if (reusable) {
     return { ok: true, scanId: await createScan(env, userId, selection, origin, reusable), reused: true };
   }
@@ -203,32 +224,36 @@ api.get("/activity", async (c) => {
   const t = now();
   const [active, recent, total] = await c.env.DB.batch([
     c.env.DB.prepare(
-      "SELECT id, label_he, label_en, status, stages_json FROM scans " +
-        "WHERE cached_from IS NULL AND status IN ('queued','starting','running') ORDER BY queued_at",
+      "SELECT id, city, label_he, label_en, status, stages_json FROM scans " +
+        "WHERE cached_from IS NULL AND status IN ('queued','starting','running','filling') ORDER BY queued_at",
     ),
     c.env.DB.prepare(
-      "SELECT id, label_he, label_en, summary_json, finished_at, expires_at FROM scans " +
+      "SELECT id, city, label_he, label_en, summary_json, finished_at, expires_at FROM scans " +
         "WHERE cached_from IS NULL AND status IN ('done','expired') ORDER BY finished_at DESC LIMIT 10",
     ),
     c.env.DB.prepare("SELECT COUNT(*) AS n FROM scans WHERE cached_from IS NULL AND status IN ('done','expired')"),
   ]);
   let position = 0;
-  const running = (active.results as Pick<ScanRow, "id" | "label_he" | "label_en" | "status" | "stages_json">[]).map((row) => {
+  type ActiveRow = Pick<ScanRow, "id" | "city" | "label_he" | "label_en" | "status" | "stages_json">;
+  const running = (active.results as ActiveRow[]).map((row) => {
     const stages = JSON.parse(row.stages_json || "{}") as Record<string, { status: string }>;
     return {
       id: row.id,
+      city: row.city,
       label_he: row.label_he,
       label_en: row.label_en,
-      status: row.status === "queued" ? "queued" : "running",
+      status: row.status === "queued" ? "queued" : row.status === "filling" ? "filling" : "running",
       position: row.status === "queued" ? ++position : null,
       stage: Object.entries(stages).find(([, s]) => s.status === "running")?.[0] ?? null,
     };
   });
-  const finished = (recent.results as Pick<ScanRow, "id" | "label_he" | "label_en" | "summary_json" | "finished_at" | "expires_at">[]).map(
+  type FinishedRow = Pick<ScanRow, "id" | "city" | "label_he" | "label_en" | "summary_json" | "finished_at" | "expires_at">;
+  const finished = (recent.results as FinishedRow[]).map(
     (row) => {
       const available = (row.expires_at ?? 0) > t;
       return {
         id: available ? row.id : null, // expired scans have no files left to open
+        city: row.city,
         label_he: row.label_he,
         label_en: row.label_en,
         status: available ? "done" : "expired",
@@ -252,6 +277,21 @@ api.get("/scans/:id", async (c) => {
   return c.json(await publicScan(c, row));
 });
 
+// Haifa: open a document that hasn't arrived yet; it goes to the front of the worker's queue. Anyone with the scan link
+// may ask (the scan page is public), but a scan can have at most MAX_OPEN_REQUESTS such documents waiting at once.
+api.post("/scans/:id/documents/:doc/fetch", async (c) => {
+  const id = c.req.param("id");
+  const doc = c.req.param("doc");
+  if (!/^A-\d{3,4}$/.test(doc)) return c.json({ error: "bad_document" }, 400);
+  const row = await c.env.DB.prepare("SELECT * FROM scans WHERE id = ?").bind(id).first<ScanRow>();
+  if (!row) return c.json({ error: "not_found" }, 404);
+  const source = await sourceScan(c.env, row);
+  if (source.status !== "filling") return c.json({ status: source.status === "done" ? "ready" : "unknown" });
+  const status = await requestDocument(c.env, source.id, doc);
+  if (status === "queued") c.executionCtx.waitUntil(dispatch(c.env));
+  return c.json({ status }, status === "limit" ? 429 : 200);
+});
+
 // ---------- email-link landing (not under /api; mounted separately) ----------
 
 export const verifyHandler = async (c: import("hono").Context<AppContext>) => {
@@ -263,24 +303,23 @@ export const verifyHandler = async (c: import("hono").Context<AppContext>) => {
   return c.redirect(result.returnTo ?? home, 302);
 };
 
-export const notifyScanReady = async (env: AppContext["Bindings"], scanId: string) => {
+/** "ready": the scan can be opened. "complete": a Haifa scan's background documents have all arrived. */
+export const notifyScanReady = async (env: AppContext["Bindings"], scanId: string, kind: "ready" | "complete" = "ready") => {
   const rows = await env.DB.prepare(
-    "SELECT s.id, s.label_he, s.label_en, u.email, u.locale FROM scans s JOIN users u ON u.id = s.user_id " +
+    "SELECT s.id, s.city, s.label_he, s.label_en, u.email, u.locale FROM scans s JOIN users u ON u.id = s.user_id " +
       "WHERE s.id = ? OR s.cached_from = ?",
   )
     .bind(scanId, scanId)
-    .all<{ id: string; label_he: string; label_en: string; email: string; locale: Locale }>();
+    .all<{ id: string; city: City; label_he: string; label_en: string; email: string; locale: Locale }>();
   await Promise.all(
-    rows.results.map((r) =>
-      sendEmail(
-        env,
-        scanReadyMessage(
-          r.locale,
-          r.email,
-          r.locale === "he" ? r.label_he : r.label_en,
-          `${env.PUBLIC_URL}${r.locale === "en" ? "/en" : ""}/scan/${r.id}`,
-        ),
-      ),
-    ),
+    rows.results.map((r) => {
+      const label = r.locale === "he" ? r.label_he : r.label_en;
+      const link = `${baseUrl(env, r.city)}${r.locale === "en" ? "/en" : ""}/scan/${r.id}`;
+      const message =
+        kind === "complete"
+          ? scanCompleteMessage(r.locale, r.email, label, link)
+          : scanReadyMessage(r.locale, r.email, label, link, r.city === "haifa");
+      return sendEmail(env, message);
+    }),
   );
 };

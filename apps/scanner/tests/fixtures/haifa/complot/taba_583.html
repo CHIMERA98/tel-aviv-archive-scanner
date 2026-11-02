@@ -1,0 +1,829 @@
+﻿<style>
+  .btn-header:after {
+    font-family: 'Glyphicons Halflings';
+    content: '\e114';
+    float: left;
+    margin-right: 15px;
+  }
+
+  .btn-header.collapsed:after {
+    content: '\e079';
+  }
+
+  .btn-header,
+  .btn-header:hover,
+  .btn-header:focus {
+    border-radius: 0;
+    border-top: 1px solid black;
+    font-weight: bold;
+    font-size: 16px;
+    text-align: right;
+    width: 100%;
+  }
+
+  .spn {
+    padding-right: 3px;
+  }
+</style>
+
+<script>
+  $.getScript(siteBaseURL + 'handasi2016/Scripts/Complot/Taba/min/taba-result.min.js');
+</script>
+
+<div class="top-nav-bar" id="top-navbar-id">
+  <h2 translatable-text>פרטי התוכנית</h2>
+  <hr />
+
+  <div class="row" id="result-title-div-id">
+    <div class="col-sm-4">
+      <div class="result-title top-navbar-info-desc" translatable-text>מספר תוכנית:</div>
+      <div class="top-navbar-info-desc">
+        חפ/981
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="result-title top-navbar-info-desc" translatable-text>סוג התוכנית:</div>
+      <div class="top-navbar-info-desc">
+        תכנית תכנון עיר
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="result-title top-navbar-info-desc" translatable-text>שם התוכנית:</div>
+      <div class="top-navbar-info-desc">
+        המושבה הגרמנית - צפונית.
+      </div>
+    </div>
+  </div>
+  <hr />
+  <div class="row hidden-xs" id="btn-group-row-id">
+    <div class="btn-group" style="width: 100%" id="btn-group-id" role="navigation" aria-label="קישור לאיזור בדף">
+      <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#plan-main')"
+        value="מידע כללי"
+      />
+      <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#matarot')"
+        value="מטרות התוכנית"
+      />
+      <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#baaley-inyan')"
+        value="בעלי עניין"
+      />
+      <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#shlavey-tochnit')"
+        value="שלבי התוכנית"
+      />
+            <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#gushim-helkot')"
+        value="גוש וחלקה"
+      />
+            <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#vaada')"
+        value="החלטות הועדה"
+      />
+      <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#archive')"
+        value="ארכיב מסמכים"
+      />
+    </div>
+  </div>
+</div>
+
+<nav class="navbar navbar-default navbar-fixed-top" id="sticky-nav-bar">
+  <div class="container-fluid row">
+    <div class="dropdown dropdown-pos">
+      <button
+        class="btn dropdown-toggle col-md-1 col-sm-1 col-xs-1 hidden-print"
+        id="dropdownMenu1"
+        data-toggle="dropdown"
+      >
+        <span class="glyphicon glyphicon-menu-hamburger"></span>
+        <span translatable-text>ניווט</span>
+      </button>
+
+      <div id="navbar-titles-id" class="hidden-xs">
+        <div class="navbar-titles-container">
+          <div class="navbar-title">
+            <h5 class="result-title" translatable-text>מספר תוכנית:</h5>
+            <h5>חפ/981</h5>
+          </div>
+          <div style="border-left: 2px solid #ddd; height: 100%"></div>
+          <!-- <div class="col-md-3 col-sm-3 margin-top-navbar-info">
+            <h5>חפ/981</h5>
+          </div> -->
+          <div class="navbar-title">
+            <h5 class="result-title" translatable-text>שם תוכנית:</h5>
+            <h5>המושבה הגרמנית - צפונית.</h5>
+          </div>
+          <!-- <div class="col-md-4 col-sm-3 margin-top-navbar-info">
+            <h5>המושבה הגרמנית - צפונית.</h5>
+          </div> -->
+        </div>
+      </div>
+
+      <div class="visible-xs" id="navbar-xs-id">
+        <div class="navbar-titles-container">
+          <h5 class="result-title" translatable-text>תוכנית</h5>
+          <h5>חפ/981</h5>
+        </div>
+      </div>
+
+      <ul class="dropdown-menu" id="dropdown-menu-nav-id" aria-labelledby="dropdownMenu1">
+        <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#plan-main')"
+            value="מידע כללי"
+          />
+        </li>
+        <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#matarot')"
+            value="מטרות התוכנית"
+          />
+        </li>
+        <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#baaley-inyan')"
+            value="בעלי עניין"
+          />
+        </li>
+        <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#shlavey-tochnit')"
+            value="שלבי התוכנית"
+          />
+        </li>
+                <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#gushim-helkot')"
+            value="גוש וחלקה"
+          />
+        </li>
+                <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#vaada')"
+            value="החלטות הועדה"
+          />
+        </li>
+        <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#archive')"
+            value="ארכיב מסמכים"
+          />
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="row" id="plan-main" tabindex="-1">
+  <div>
+    <h3 class="result-title result-title-bottom" translatable-text>מידע כללי</h3>
+  </div>
+
+  <table class="table table-condensed" role="presentation">
+    <tbody>
+      <tr>
+        <td class="title" translatable-text>סטטוס תוכנית</td>
+        <td>בתוקף</td>
+      </tr>
+      <tr>
+        <td class="title" translatable-text>תאריך הסטטוס</td>
+        <td>20/01/1966</td>
+      </tr>
+      <tr>
+        <td class="title" translatable-text>בסמכות</td>
+        <td>ועדה מחוזית</td>
+      </tr>
+      <tr>
+        <td class="title" translatable-text>שכונה</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="title" translatable-text>שטח</td>
+        <td>410,000.00 מ"ר 410.000 דונם</td>
+      </tr>
+      <tr>
+        <td class="title" translatable-text>יזם</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="title" translatable-text>קישור למבא"ת</td>
+        <td>
+          <a
+            href="javascript:void(0);"
+            onclick="window.open(encodeURI('https://mavat.iplan.gov.il/SV3?text=חפ/981'), '_blank');"
+            translatable-text
+            >קישור לתוכנית</a
+          >
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="row" id="matarot" tabindex="-1">
+  <div>
+    <h3 class="result-title result-title-bottom" translatable-text>מטרות התוכנית</h3>
+  </div>
+  <table class="table table-condensed" role="presentation">
+    <tbody>
+            <tr>
+        <td translatable-text>לא נמצאו נתונים</td>
+      </tr>
+          </tbody>
+  </table>
+</div>
+
+<div class="row" id="baaley-inyan" tabindex="-1">
+  <div>
+    <h3 class="result-title result-title-bottom" translatable-text>בעלי עניין</h3>
+  </div>
+  <table class="table table-condensed" role="presentation">
+    <tbody>
+            <tr>
+        <td translatable-text>לא נמצאו נתונים</td>
+      </tr>
+          </tbody>
+  </table>
+</div>
+
+<div class="row" id="shlavey-tochnit" tabindex="-1">
+  <div>
+    <div
+      id="btn-shlavim"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-shlavim"
+      role="button"
+    >
+      <span translatable-text>שלבי התוכנית</span>
+      <span class="spn">(6)</span>
+    </div>
+  </div>
+  <div id="table-shlavim" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header" translatable-text>מתאריך</th>
+          <th class="th-results-header" translatable-text>שם השלב</th>
+          <th class="th-results-header" translatable-text>ילקוט פרסומים</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>מספר ישיבה</th>
+        </tr>
+      </thead>
+      <tbody>
+                <tr>
+          <td>20/01/1966</td>
+          <td>ס.117 - פרסום הודעה על אישור תכנית למתן תוקף בילקוט פרסומים</td>
+          <td>1256</td>
+          <td class="hidden-on-mobile"></td>
+        </tr>
+                <tr>
+          <td>23/05/2002</td>
+          <td>אירועים פנימיים</td>
+          <td></td>
+          <td class="hidden-on-mobile"></td>
+        </tr>
+                <tr>
+          <td>09/11/1995</td>
+          <td>פרסום הפקעה לפי סעיף 5 ו-7 לפקודת הקרקעות</td>
+          <td>4346</td>
+          <td class="hidden-on-mobile"></td>
+        </tr>
+                <tr>
+          <td>01/07/1993</td>
+          <td>פרסום הפקעה לפי סעיף 5 ו-7 לפקודת הקרקעות</td>
+          <td>4126</td>
+          <td class="hidden-on-mobile"></td>
+        </tr>
+                <tr>
+          <td>14/04/1983</td>
+          <td>פרסום הפקעה לפי סעיף 5 ו-7 לפקודת הקרקעות</td>
+          <td>2911</td>
+          <td class="hidden-on-mobile"></td>
+        </tr>
+                <tr>
+          <td>23/03/1961</td>
+          <td>ס.89 - פרסום הודעה על הפקדת תכנית בילקוט פרסומים</td>
+          <td>833</td>
+          <td class="hidden-on-mobile"></td>
+        </tr>
+              </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="gushim-helkot" tabindex="-1">
+  <div>
+    <div
+      id="btn-gushim-helkot"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-gushim-helkot"
+      role="button"
+    >
+      <span translatable-text>גושים וחלקות</span>
+      <span class="spn">(24)</span>
+    </div>
+  </div>
+  <div id="table-gushim-helkot" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header" translatable-text>מספר גוש</th>
+          <th class="th-results-header" translatable-text>סטטוס הגוש</th>
+          <th class="th-results-header" translatable-text>חלקי / שלם</th>
+          <th class="th-results-header" translatable-text>מחלקה</th>
+          <th class="th-results-header" translatable-text>עד חלקה</th>
+          <th class="th-results-header" translatable-text>חלקה שלמה / חלקית</th>
+        </tr>
+      </thead>
+      <tbody>
+                        <tr>
+          <td>0</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>1</td>
+          <td>1</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>0</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>4</td>
+          <td>64</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>0</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>5</td>
+          <td>9999</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>0</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>6</td>
+          <td>10</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>0</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>10</td>
+          <td>11</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>0</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>15</td>
+          <td>15</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>0</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>34</td>
+          <td>36</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>0</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>38</td>
+          <td>38</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>0</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>86</td>
+          <td>86</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>0</td>
+          <td></td>
+          <td>שלם</td>
+          <td>98</td>
+          <td>98</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>0</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>200</td>
+          <td>200</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>0</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>223</td>
+          <td>223</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>0</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>251</td>
+          <td>251</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>0</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>254</td>
+          <td>254</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>0</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>256</td>
+          <td>256</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>10826</td>
+          <td></td>
+          <td>שלם</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+                <tr>
+          <td>10827</td>
+          <td></td>
+          <td>שלם</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+                <tr>
+          <td>10829</td>
+          <td></td>
+          <td>שלם</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+                <tr>
+          <td>10830</td>
+          <td></td>
+          <td>שלם</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+                <tr>
+          <td>10832</td>
+          <td></td>
+          <td>חלקי</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+                <tr>
+          <td>10833</td>
+          <td></td>
+          <td>שלם</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+                <tr>
+          <td>10834</td>
+          <td></td>
+          <td>חלקי</td>
+          <td>236</td>
+          <td>236</td>
+          <td>חלקי</td>
+        </tr>
+                <tr>
+          <td>10930</td>
+          <td></td>
+          <td>שלם</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+                <tr>
+          <td>11112</td>
+          <td></td>
+          <td>שלם</td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+                      </tbody>
+    </table>
+  </div>
+</div>
+<!-- ShowGushHelka-->
+
+<div class="row" id="vaada" tabindex="-1">
+  <div>
+    <div
+      id="btn-meetings"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-meetings"
+      role="button"
+    >
+      <span translatable-text>ישיבות והחלטות הוועדה</span>
+      <span class="spn">(1)</span>
+    </div>
+  </div>
+  <div id="table-meetings" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header"></th>
+          <th class="th-results-header" translatable-text>שם הועדה</th>
+          <th class="th-results-header" translatable-text>מספר ישיבה</th>
+          <th class="th-results-header" translatable-text>תאריך ישיבה</th>
+          <th class="th-results-header" translatable-text>יום בשבוע</th>
+          <th class="th-results-header" translatable-text>שעה</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>תאריך עברי</th>
+        </tr>
+      </thead>
+      <tbody>
+                        <tr
+          data-toggle="collapse"
+          data-target="#33315"
+          class="accordion-toggle collapsed"
+          tabindex="0"
+          aria-expanded="false"
+          aria-label="פרטי ועדת משנה ( עד ספט' 2018 ) מספר 15"
+        >
+          <td></td>
+          <td>ועדת משנה ( עד ספט' 2018 )</td>
+          <td>
+            <a href="javascript:getMeeting(333,15)">15</a>
+          </td>
+          <td>28/07/2014</td>
+          <td>ב</td>
+          <td>00:00</td>
+          <td class="hidden-on-mobile">א'  אב, תשע"ד</td>
+        </tr>
+        <tr>
+          <td colspan="7" class="hiddenRow">
+            <div class="accordian-body collapse" id="33315">
+              <table class="table table-condensed" role="presentation">
+                <thead>
+                  <tr>
+                    <th class="title vaada-title" translatable-text>מהות</th>
+                  </tr>
+                </thead>
+                <tbody>
+                                    <tr>
+                    <td>&nbsp</td>
+                  </tr>
+                                    <tr>
+                    <td>תכנית בינוי עפ"י תכנית חפ/981</td>
+                  </tr>
+                                    <tr>
+                    <td>" בית ספר כרמל במושבה הגרמנית – תוספת כיתות"</td>
+                  </tr>
+                                    <tr>
+                    <td>גיליון מס'  1</td>
+                  </tr>
+                                    <tr>
+                    <td>&nbsp</td>
+                  </tr>
+                                  </tbody>
+              </table>
+              <table class="table table-condensed" role="presentation">
+                <thead>
+                  <tr>
+                    <th class="title vaada-title" translatable-text>החלטות</th>
+                  </tr>
+                </thead>
+                <tbody>
+                                    <tr>
+                    <td>צוות משרד מהנדס העיר ממליץ לועדה המקומית לאשר את תכנית הבינוי בתנאים הבאים:</td>
+                  </tr>
+                                    <tr>
+                    <td>&nbsp</td>
+                  </tr>
+                                    <tr>
+                    <td>1. תכנית הבינוי תכלול את כל מתחם בית הספר ותחלקו לשני תתי מתחמים . ההתיחסות</td>
+                  </tr>
+                                    <tr>
+                    <td>המפורטת תהיה למתחם  הצפוני ותחום שטח זה יוגדר ויסומן בסימון מיוחד, המתחם השני</td>
+                  </tr>
+                                    <tr>
+                    <td>(הפונה לשד' המגינים)  יסומן כלא כלול  ויוראה הקשר בין המבנה הקיים למבנה החדש</td>
+                  </tr>
+                                    <tr>
+                    <td>ולמתחם הכולל.</td>
+                  </tr>
+                                    <tr>
+                    <td>2. יש להגיש תכנית פיתוח למתחם שתהיה טעונה אישור היחידה לתכנון נופי. התכנית תכלול</td>
+                  </tr>
+                                    <tr>
+                    <td>התייחסות לשטחי גינון ומשחק, גדרות , מצללות, חומרי גמר חומרי בנייה וכו" ותהווה חלק</td>
+                  </tr>
+                                    <tr>
+                    <td>מתכנית הבינוי.</td>
+                  </tr>
+                                    <tr>
+                    <td>3. מרווחי הבניה יהיו 5 מ' לפחות  למעט בצד הצפון מערבי של החלקה בה יהיו מרווחי הבניה</td>
+                  </tr>
+                                    <tr>
+                    <td>בהתאם לתכנית הבינוי המוצעת .</td>
+                  </tr>
+                                    <tr>
+                    <td>4. שטח הבניה במתחם לא יעלה על – 108%  בניה.</td>
+                  </tr>
+                                    <tr>
+                    <td>5. יישום הוראות הבניה ייבדק במסגרת הבקשה להיתר.</td>
+                  </tr>
+                                    <tr>
+                    <td>6. התכנית תתוקן בתיקונים טכניים בתאום המחלקה לתכנון העיר.</td>
+                  </tr>
+                                    <tr>
+                    <td>&nbsp</td>
+                  </tr>
+                                    <tr>
+                    <td>&nbsp</td>
+                  </tr>
+                                  </tbody>
+              </table>
+            </div>
+          </td>
+        </tr>
+                      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="archive" tabindex="-1">
+  <div>
+    <div
+      id="btn-archive"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-archive"
+      role="button"
+    >
+      <span translatable-text>ארכיב מסמכים</span>
+      <span class="spn">(4)</span>
+    </div>
+  </div>
+  <div id="table-archive" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header" translatable-text>שם המסמך</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>נושא</th>
+                    <th class="th-results-header" translatable-text>תאריך</th>
+                  </tr>
+      </thead>
+      <tbody>
+                                <tr>
+          <td>
+            <a href="javascript:showArchiveFile(201,583,0,4)"
+              ><span class="glyphicon glyphicon-file"></span>
+              טבלת הוראות מפורטות</a
+            >
+          </td>
+          <td class="hidden-on-mobile">הוראות מפורטות</td>
+                    <td>14/01/2009</td>
+                  </tr>
+                <tr>
+          <td>
+            <a href="javascript:showArchiveFile(201,583,0,1)"
+              ><span class="glyphicon glyphicon-file"></span>
+              תשריט</a
+            >
+          </td>
+          <td class="hidden-on-mobile">תשריט מאושר</td>
+                    <td>19/11/2002</td>
+                  </tr>
+                <tr>
+          <td>
+            <a href="javascript:showArchiveFile(201,583,0,2)"
+              ><span class="glyphicon glyphicon-file"></span>
+              תקנון</a
+            >
+          </td>
+          <td class="hidden-on-mobile">תקנון מאושר</td>
+                    <td>19/11/2002</td>
+                  </tr>
+                <tr>
+          <td>
+            <a href="javascript:showArchiveFile(201,583,0,3)"
+              ><span class="glyphicon glyphicon-file"></span>
+              טבלה לשטחי הקרקע ואופן ניצולם</a
+            >
+          </td>
+          <td class="hidden-on-mobile">נספח אחר</td>
+                    <td>19/11/2002</td>
+                  </tr>
+                                      </tbody>
+    </table>
+  </div>
+</div>
+
+<button id="print-btn" class="btn btn-primary">
+  <span class="glyphicon glyphicon-print"></span>
+  &nbsp;
+  <span translatable-text>הדפסה</span>
+</button>
+
+<button
+  translatable-title
+  translatable-bs-title
+  id="back-to-top"
+  href="#"
+  class="btn btn-primary scroll-back-to-top"
+  title="חזרה לראש הדף"
+  onClick="scrollToElement(MAIN_CONTAINER_SELECTOR,500); return false;"
+  data-toggle="tooltip"
+  data-placement="left"
+>
+  <span class="glyphicon glyphicon-chevron-up"></span>
+</button>
+
+<script>
+  $(function() {
+      $(MAIN_CONTAINER_SELECTOR).find("#btn-meetings,#btn-archive").click();
+  });
+</script>

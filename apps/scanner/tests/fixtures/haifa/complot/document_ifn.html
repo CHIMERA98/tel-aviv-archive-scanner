@@ -1,0 +1,53 @@
+﻿<!DOCTYPE html>
+<html lang="he">
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<style>
+		body {
+			font-family: sans-serif;
+			background-color: #f0f1ed;
+		}
+
+		div.download-container {
+			width: 100%;
+			margin-top: 10%;
+			text-align: center;
+		}
+
+		p {
+			font-weight: bold;
+			font-size: 24px;
+		}
+
+		p.small-text {
+			font-size: 18px;
+		}
+
+		a.no-underline {
+			text-decoration: none;
+			border: none;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="download-container" style="visibility: hidden">
+		<a class="no-underline" href="https://handasi.complot.co.il/handasi2016/cache/HFA/IFN/1.F04FD286-C3A8-4E75-9822-F69556D1F6C9.pdf" title="הורדה">
+			<img src="/handasi2016/images/dl-icon.gif" alt="תמונה של חץ מצביע כלפי מטה">
+		</a>
+		<br>
+		<p>הקובץ נשלח להורדה</p>
+		<p class="small-text">במידה ולא, ניתן <a class="download-link" href="https://handasi.complot.co.il/handasi2016/cache/HFA/IFN/1.F04FD286-C3A8-4E75-9822-F69556D1F6C9.pdf">ללחוץ כאן</a> להורדה חוזרת
+		</p>
+	</div>
+    <script>
+        setTimeout(function () {
+            document.getElementsByClassName('download-container')[0].style.visibility = 'visible';
+        }, 1000);
+        window.location.href = "https://handasi.complot.co.il/handasi2016/cache/HFA/IFN/1.F04FD286-C3A8-4E75-9822-F69556D1F6C9.pdf";
+    </script>
+</body>
+
+</html>

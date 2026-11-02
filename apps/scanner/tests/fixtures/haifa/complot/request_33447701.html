@@ -1,0 +1,893 @@
+﻿<style>
+  .btn-header:after {
+    font-family: 'Glyphicons Halflings';
+    content: '\e114';
+    float: left;
+    margin-right: 15px;
+  }
+
+  .btn-header.collapsed:after {
+    content: '\e079';
+  }
+
+  .btn-header,
+  .btn-header:hover,
+  .btn-header:focus {
+    border-radius: 0;
+    border-top: 1px solid black;
+    font-weight: bold;
+    font-size: 16px;
+    text-align: right;
+    width: 100%;
+  }
+
+  .spn {
+    padding-right: 3px;
+  }
+  .tr-hidden {
+    display: none;
+  }
+</style>
+
+<script>
+  $.getScript(siteBaseURL + 'handasi2016/Scripts/Complot/Request/min/request-result.min.js');
+</script>
+
+<div class="top-nav-bar" id="top-navbar-id">
+  <h2 translatable-text>פרטי בקשה להיתר</h2>
+  <hr />
+  <section>
+    <div class="row" id="result-title-div-id">
+      <div class="col-sm-4">
+        <div class="result-title top-navbar-info-desc" translatable-text>מספר הבקשה:</div>
+        <div class="top-navbar-info-desc">33447701</div>
+      </div>
+      <div class="col-sm-4">
+        <div class="result-title top-navbar-info-desc" translatable-text>כתובת:</div>
+        <div class="top-navbar-info-desc">שד' בן גוריון 10 חיפה</div>
+      </div>
+      <div class="col-sm-4">
+        <div class="result-title top-navbar-info-desc" translatable-text>תאריך הגשה:</div>
+        <div class="top-navbar-info-desc">02/05/1988</div>
+      </div>
+    </div>
+  </section>
+  <hr />
+
+  <div class="row hidden-xs" id="btn-group-row-id">
+    <div class="btn-group" style="width: 100%" id="btn-group-id" role="navigation" aria-label="קישור לאיזור בדף">
+      <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#info-main')"
+        value="מידע כללי"
+      />
+      <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#mahut')"
+        value="מהות"
+      />
+      <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#baaley-inyan')"
+        value="בעלי עניין"
+      />
+            <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#gushim-helkot')"
+        value="גוש וחלקה"
+      />
+            <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#events')"
+        value="אירועים"
+      />
+            <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#vaada')"
+        value="ישיבות"
+      />
+            <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#requirments')"
+        value="דרישות"
+      />
+      <input
+        translatable-value
+        role="link"
+        type="button"
+        class="btn btn-primary btn-responsive"
+        onclick="scrollToElement('#archive')"
+        value="ארכיב מסמכים"
+      />
+    </div>
+  </div>
+</div>
+
+<nav class="navbar navbar-default navbar-fixed-top" id="sticky-nav-bar">
+  <div class="container-fluid row">
+    <div class="dropdown dropdown-pos">
+      <button
+        class="btn dropdown-toggle col-md-1 col-sm-1 col-xs-1 hidden-print"
+        id="dropdownMenu1"
+        data-toggle="dropdown"
+      >
+        <span class="glyphicon glyphicon-menu-hamburger"></span>
+        <span translatable-text>ניווט</span>
+      </button>
+
+      <div id="navbar-titles-id" class="hidden-xs">
+        <div class="navbar-titles-container">
+          <div class="navbar-title">
+            <h5 class="result-title" translatable-text>מספר הבקשה:</h5>
+            <h5>33447701</h5>
+          </div>
+          <!-- <div class="col-md-3 col-sm-3 margin-top-navbar-info">
+            <h5>33447701</h5>
+          </div> -->
+          <div class="navbar-title">
+            <h5 class="result-title" translatable-text>כתובת:</h5>
+            <h5>שד' בן גוריון 10 חיפה</h5>
+          </div>
+          <!-- <div class="col-md-4 col-sm-3 margin-top-navbar-info">
+            <h5>שד' בן גוריון 10 חיפה</h5>
+          </div> -->
+        </div>
+      </div>
+
+      <div class="visible-xs" id="navbar-xs-id">
+        <div class="result-title">
+          <h2>
+            <span translatable-text>פרטי בקשה</span>
+            33447701
+          </h2>
+        </div>
+      </div>
+
+      <ul class="dropdown-menu" id="dropdown-menu-nav-id" aria-labelledby="dropdownMenu1">
+        <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#info-main')"
+            value="מידע כללי"
+          />
+        </li>
+        <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#mahut')"
+            value="מהות"
+          />
+        </li>
+        <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#baaley-inyan')"
+            value="בעלי עניין"
+          />
+        </li>
+                <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#gushim-helkot')"
+            value="גוש וחלקה"
+          />
+        </li>
+                <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#events')"
+            value="אירועים"
+          />
+        </li>
+                <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#vaada')"
+            value="ישיבות"
+          />
+        </li>
+                <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#requirments')"
+            value="דרישות"
+          />
+        </li>
+        <li>
+          <input
+            translatable-value
+            role="link"
+            type="button"
+            class="btn li-max-width"
+            onclick="scrollToElement('#archive')"
+            value="ארכיב מסמכים"
+          />
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="row" id="info-main" tabindex="-1">
+  <div>
+    <h3 class="result-title result-title-bottom" translatable-text>מידע כללי</h3>
+  </div>
+
+  <table class="table table-condensed" role="presentation">
+    <tbody>
+      <tr>
+        <td class="title" translatable-text>מספר תיק בניין</td>
+        <td>
+          <a href="javascript:getBuilding(334477)">334477</a>
+        </td>
+      </tr>
+
+      <tr>
+        <td class="title" translatable-text>מספר הבקשה ברישוי זמין</td>
+        <td></td>
+      </tr>
+
+      <tr>
+        <td class="title" translatable-text>סוג הבקשה</td>
+        <td>בקשה להיתר</td>
+      </tr>
+
+      <tr>
+        <td class="title" translatable-text>שימוש עיקרי</td>
+        <td>מגורים</td>
+      </tr>
+
+      <tr>
+        <td class="title" translatable-text>תיאור הבקשה</td>
+        <td>כללי</td>
+      </tr>
+
+            <tr>
+        <td class="title" translatable-text>מטפל</td>
+        <td>ארוע אוטומטי</td>
+      </tr>
+      
+            <tr>
+        <td class="title" translatable-text>מספר היתר</td>
+        <td></td>
+      </tr>
+
+      <tr>
+        <td class="title" translatable-text>תאריך הפקת היתר</td>
+        <td></td>
+      </tr>
+      
+      <tr>
+        <td class="title" translatable-text>שטח עיקרי</td>
+        <td></td>
+      </tr>
+
+      <tr>
+        <td class="title" translatable-text>שטח שירות</td>
+        <td></td>
+      </tr>
+
+      <tr>
+        <td class="title" translatable-text>סך מספר יחידות דיור המבוקשות</td>
+        <td></td>
+      </tr>
+
+      
+      
+      
+          </tbody>
+  </table>
+</div>
+
+<div class="row" id="mahut" tabindex="-1">
+  <div>
+    <h3 class="result-title result-title-bottom" translatable-text>מהות הבקשה</h3>
+  </div>
+
+  <table class="table table-condensed" role="presentation">
+    <tbody>
+            <tr>
+        <td translatable-text>לא נמצאו נתונים</td>
+      </tr>
+          </tbody>
+  </table>
+</div>
+
+<div class="row" id="baaley-inyan" tabindex="-1">
+  <div>
+    <div
+      id="btn-baaley-inyan"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-baaley-inyan"
+      role="button"
+    >
+      <span translatable-text>בעלי עניין</span>
+      <span class="spn">(2)</span>
+    </div>
+  </div>
+  <div id="table-baaley-inyan" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header" translatable-text>סוג בעל עניין</th>
+          <th class="th-results-header" translatable-text>שם בעל עניין</th>
+        </tr>
+      </thead>
+      <tbody>
+                        <tr>
+          <td class="title">מבקש</td>
+          <td>יבין יעקב</td>
+        </tr>
+                <tr>
+          <td class="title">עורך</td>
+          <td>בן עזרא א</td>
+        </tr>
+                      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="gushim-helkot" tabindex="-1">
+  <div>
+    <div
+      id="btn-gushim-helkot"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-gushim-helkot"
+      role="button"
+    >
+      <span translatable-text>גושים וחלקות</span>
+      <span class="spn">(1)</span>
+    </div>
+  </div>
+  <div id="table-gushim-helkot" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header"></th>
+          <th class="th-results-header" translatable-text>מספר גוש</th>
+          <th class="th-results-header" translatable-text>מספר חלקה</th>
+          <th class="th-results-header" translatable-text>מספר מגרש</th>
+          <th class="th-results-header" translatable-text>יעוד</th>
+        </tr>
+      </thead>
+      <tbody>
+                        <tr>
+          <td>
+            <a href="javascript:getGush(10830,5)"
+              ><span class="glyphicon glyphicon-modal-window black-font-color"></span
+            ></a>
+          </td>
+          <td>10830</td>
+          <td>5</td>
+          <td></td>
+          <td>&nbsp</td>
+        </tr>
+                      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="events" tabindex="-1">
+  <div>
+    <div
+      id="btn-events"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-events"
+      role="button"
+    >
+      <span translatable-text>אירועים</span>
+      <span class="spn">(29)</span>
+    </div>
+  </div>
+  <div id="table-events" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header" translatable-text>סוג אירוע</th>
+          <th class="th-results-header" translatable-text>תיאור אירוע</th>
+          <th class="th-results-header" translatable-text>תאריך אירוע</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>תאריך סיום אירוע</th>
+                    <th class="th-results-header hidden-on-mobile" translatable-text>מטפל</th>
+                            </tr>
+      </thead>
+      <tbody>
+                        <tr>
+          <td>נוכחי</td>
+          <td>בקשה לא פעילה</td>
+          <td>09/02/2009</td>
+          <td class="hidden-on-mobile"></td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>נוכחי</td>
+          <td>סוף מסלול פקוח</td>
+          <td>04/10/1991</td>
+          <td class="hidden-on-mobile"></td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>פס"ד - בניה ללא היתר</td>
+          <td>04/10/1991</td>
+          <td class="hidden-on-mobile">04/10/1991</td>
+                    <td class="hidden-on-mobile">כדורי נתן - מפקח*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>המתנה להמשך טיפול</td>
+          <td>04/10/1991</td>
+          <td class="hidden-on-mobile">04/10/1991</td>
+                    <td class="hidden-on-mobile">מנהל ארכיב ארכיון*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>המתנה להמשך טיפול</td>
+          <td>01/07/1990</td>
+          <td class="hidden-on-mobile">04/10/1991</td>
+                    <td class="hidden-on-mobile">מנהל ארכיב ארכיון*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>פס"ד - בניה ללא היתר</td>
+          <td>28/06/1990</td>
+          <td class="hidden-on-mobile">01/07/1990</td>
+                    <td class="hidden-on-mobile">כדורי נתן - מפקח*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>המתנה להמשך טיפול</td>
+          <td>03/01/1990</td>
+          <td class="hidden-on-mobile">28/06/1990</td>
+                    <td class="hidden-on-mobile">מנהל ארכיב ארכיון*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>פס"ד - בניה ללא היתר</td>
+          <td>02/01/1990</td>
+          <td class="hidden-on-mobile">03/01/1990</td>
+                    <td class="hidden-on-mobile">טלי דייג פרלמן*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>המתנה להמשך טיפול</td>
+          <td>17/05/1989</td>
+          <td class="hidden-on-mobile">02/01/1990</td>
+                    <td class="hidden-on-mobile">מנהל ארכיב ארכיון*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>פס"ד - בניה ללא היתר</td>
+          <td>14/05/1989</td>
+          <td class="hidden-on-mobile">17/05/1989</td>
+                    <td class="hidden-on-mobile">טלי דייג פרלמן*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>המתנה להמשך טיפול</td>
+          <td>13/02/1989</td>
+          <td class="hidden-on-mobile">14/05/1989</td>
+                    <td class="hidden-on-mobile">מנהל ארכיב ארכיון*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>סוף מסלול רישוי</td>
+          <td>12/02/1989</td>
+          <td class="hidden-on-mobile">09/02/2009</td>
+                    <td class="hidden-on-mobile">&nbsp</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>ביקורת ודיווח - פיקוח</td>
+          <td>12/02/1989</td>
+          <td class="hidden-on-mobile">13/02/1989</td>
+                    <td class="hidden-on-mobile">אברהם זילברמן - פיקוח*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>המתנה ברישוי</td>
+          <td>12/02/1989</td>
+          <td class="hidden-on-mobile">12/02/1989</td>
+                    <td class="hidden-on-mobile">מנהל ארכיב ארכיון*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בדיקה יסודית</td>
+          <td>09/02/1989</td>
+          <td class="hidden-on-mobile">12/02/1989</td>
+                    <td class="hidden-on-mobile">נאזם טוקאן - ס/מנהל מחלקת רישוי*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>החלטה לדחות את הבקשה</td>
+          <td>30/01/1989</td>
+          <td class="hidden-on-mobile">09/02/1989</td>
+                    <td class="hidden-on-mobile">מזכירות ועדה מקומית*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>הדפסת כתבה בועדה המקומית</td>
+          <td>25/12/1988</td>
+          <td class="hidden-on-mobile">09/02/1989</td>
+                    <td class="hidden-on-mobile">מזכירות ועדה מקומית*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>הועבר החוצה(מהרישוי)</td>
+          <td>13/12/1988</td>
+          <td class="hidden-on-mobile">25/12/1988</td>
+                    <td class="hidden-on-mobile">תכנון העיר</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>הועבר החוצה(מהרישוי)</td>
+          <td>23/11/1988</td>
+          <td class="hidden-on-mobile">13/12/1988</td>
+                    <td class="hidden-on-mobile">תכנון העיר</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>המתנה להמשך טיפול</td>
+          <td>27/10/1988</td>
+          <td class="hidden-on-mobile">12/02/1989</td>
+                    <td class="hidden-on-mobile">מנהל ארכיב ארכיון*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בדיקה יסודית</td>
+          <td>27/10/1988</td>
+          <td class="hidden-on-mobile">23/11/1988</td>
+                    <td class="hidden-on-mobile">נאזם טוקאן - ס/מנהל מחלקת רישוי*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>הגשת דו"ח - בניה ללא היתר</td>
+          <td>26/10/1988</td>
+          <td class="hidden-on-mobile">27/10/1988</td>
+                    <td class="hidden-on-mobile">טלי דייג פרלמן*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בקשה להיתר - אמות באתר ע"י הפיקוח</td>
+          <td>25/10/1988</td>
+          <td class="hidden-on-mobile">26/10/1988</td>
+                    <td class="hidden-on-mobile">אברהם זילברמן - פיקוח*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>דווח לרישוי</td>
+          <td>24/10/1988</td>
+          <td class="hidden-on-mobile">25/10/1988</td>
+                    <td class="hidden-on-mobile">מנהל ארכיב ארכיון*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בדיקה יסודית</td>
+          <td>24/10/1988</td>
+          <td class="hidden-on-mobile">27/10/1988</td>
+                    <td class="hidden-on-mobile">נאזם טוקאן - ס/מנהל מחלקת רישוי*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בקשה להיתר - אמות באתר ע"י הפיקוח</td>
+          <td>17/05/1988</td>
+          <td class="hidden-on-mobile">24/10/1988</td>
+                    <td class="hidden-on-mobile">אלישע הינברג - מפקח*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>ביקורת מפ"ב</td>
+          <td>04/05/1988</td>
+          <td class="hidden-on-mobile">24/10/1988</td>
+                    <td class="hidden-on-mobile">פרוזר אליעזר - מ. אגף*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>רשום ותיוק הבקשה</td>
+          <td>04/05/1988</td>
+          <td class="hidden-on-mobile">04/05/1988</td>
+                    <td class="hidden-on-mobile">עדינה פרציג*</td>
+                            </tr>
+                <tr>
+          <td>סגור</td>
+          <td>בקשה להיתר - אמות באתר ע"י הפיקוח</td>
+          <td>04/05/1988</td>
+          <td class="hidden-on-mobile">17/05/1988</td>
+                    <td class="hidden-on-mobile">אלישע הינברג - מפקח*</td>
+                            </tr>
+                      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="vaada" tabindex="-1">
+  <div>
+    <div
+      id="btn-meetings"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-meetings"
+      role="button"
+    >
+      <span translatable-text>ישיבות והחלטות הועדה</span>
+      <span class="spn">(0)</span>
+    </div>
+  </div>
+  <div id="table-meetings" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header"></th>
+          <th class="th-results-header" translatable-text>שם הועדה</th>
+          <th class="th-results-header" translatable-text>מספר ישיבה</th>
+          <th class="th-results-header" translatable-text>תאריך ישיבה</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>יום בשבוע</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>שעה</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>תאריך עברי</th>
+        </tr>
+      </thead>
+      <tbody>
+                <tr>
+          <td colspan="7" translatable-text>לא נמצאו נתונים</td>
+        </tr>
+              </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="requirments" tabindex="-1">
+  <div>
+    <div
+      id="btn-requirments"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-requirments"
+      role="button"
+    >
+      <span translatable-text>גליון דרישות</span>
+      <span class="spn">(0)</span>
+    </div>
+  </div>
+  <div id="table-requirments" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header" translatable-text>דרישה</th>
+          <th class="th-results-header" translatable-text>סטטוס</th>
+          <th class="th-results-header" translatable-text>תאריך</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>
+            הערות
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+                <tr>
+          <td colspan="4" translatable-text>לא נמצאו נתונים</td>
+        </tr>
+              </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="agrot" tabindex="-1">
+  <div>
+    <div
+      id="btn-agrot"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-agrot"
+      role="button"
+    >
+      <span translatable-text>סעיפי אגרה</span>
+      <span class="spn">(0)</span>
+    </div>
+  </div>
+  <div id="table-agrot" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th translatable-text>סעיף</th>
+          <th translatable-text>תאור אגרה/היטל</th>
+          <th translatable-text>כמות</th>
+          <th class="hidden-on-mobile" translatable-text>יחידה</th>
+          <th translatable-text>מחיר ליחידה</th>
+          <th translatable-text>סכום</th>
+        </tr>
+      </thead>
+      <tbody>
+                <tr>
+          <td colspan="6" translatable-text>לא נמצאו נתונים</td>
+        </tr>
+              </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row" id="archive" tabindex="-1">
+  <div>
+    <div
+      id="btn-archive"
+      type="button"
+      class="btn btn-defailt btn-header collapsed"
+      data-toggle="collapse"
+      data-target="#table-archive"
+      role="button"
+    >
+      <span translatable-text>ארכיב מסמכים</span>
+      <span class="spn">(2)</span>
+    </div>
+  </div>
+  <div id="table-archive" class="collapse" style="height: 0px">
+    <table class="table table-condensed">
+      <thead>
+        <tr>
+          <th class="th-results-header" translatable-text>שם המסמך</th>
+          <th class="th-results-header hidden-on-mobile" translatable-text>נושא</th>
+                  </tr>
+      </thead>
+      <tbody>
+                                <tr>
+                    <td>
+            <a href="javascript:showIFNFile('{E76EAEA3-B2F6-44F8-957F-431CEF1D012D}')"
+              ><span class="glyphicon glyphicon-file"></span>
+              היתר בניה</a
+            >
+          </td>
+                    <td class="hidden-on-mobile">היתר בניה</td>
+                    <td>30/09/2009</td>
+                  </tr>
+                <tr>
+                    <td>
+            <a href="javascript:showIFNFile('{F0AC11DD-F3DD-4571-8F8A-8AFE3AC1B431}')"
+              ><span class="glyphicon glyphicon-file"></span>
+              היתר בניה</a
+            >
+          </td>
+                    <td class="hidden-on-mobile">היתר בניה</td>
+                    <td>30/09/2009</td>
+                  </tr>
+                
+        
+                      </tbody>
+    </table>
+  </div>
+</div>
+
+<br />
+
+<button id="print-btn" class="btn btn-primary hidden-xs">
+  <span class="glyphicon glyphicon-print"></span>
+  &nbsp;
+  <span translatable-text>הדפסה</span>
+</button>
+
+&nbsp;&nbsp;&nbsp;
+
+<button
+  id="mail-btn"
+  class="btn btn-primary hidden-xs"
+  data-toggle="modal"
+  data-target="#mailModal"
+  data-keyboard="true"
+  onclick="$('#mailAddress').val('')"
+>
+  <span class="glyphicon glyphicon-envelope"></span>
+  &nbsp;
+  <span translatable-text>שליחת מייל</span>
+</button>
+
+<!-- Modal -->
+<div class="modal fade" id="mailModal" role="dialog" aria-hidden="true" tabindex="-1">
+  <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">שליחת מייל</h3>
+      </div>
+      <div dir="rtl" class="modal-body">
+        <form>
+          <div class="form-group">
+            <label for="mailAddress" class="col-form-label">כתובת המייל:</label>
+            <input dir="ltr" type="text" class="form-control" style="width: 100%" id="mailAddress" />
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">בטל</button>
+        <button type="button" class="btn btn-primary" onclick="btnSendMail_Clicked(33447701)">שלח</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button
+  translatable-title
+  translatable-bs-title
+  id="back-to-top"
+  href="#"
+  class="btn btn-primary scroll-back-to-top"
+  title="חזרה לראש הדף"
+  onClick="scrollToElement(MAIN_CONTAINER_SELECTOR,500); return false;"
+  data-toggle="tooltip"
+  data-placement="left"
+>
+  <span class="glyphicon glyphicon-chevron-up"></span>
+</button>
+
+<script>
+
+  $(function() {
+    $(MAIN_CONTAINER_SELECTOR).find("#btn-baaley-inyan,#btn-gushim-helkot,#btn-meetings,#btn-requirments,#btn-agrot,#btn-archive").click();
+  });
+
+  function toggelDrishot(elm, clss) {
+  	var tr = $(elm);
+  	if (tr.hasClass('collapsed')) {
+  		tr.removeClass('collapsed');
+  	} else {
+  		tr.addClass('collapsed');
+  	}
+  	$('#table-requirments').find('tr.' + clss).toggle();
+  }
+
+  function showDrishaRemarks(elm, numerator) {
+  	var siteId = getSiteId();
+  	var urlformat = "{0}ShowRemark&siteid={1}&r={2}&arguments=siteid,r";
+  	var url = urlformat.format(xpaBaseURL, siteId, numerator);
+
+  	goTo(url, '#modalcontent');
+
+  	$("#modal-window").on('hidden.bs.modal', function (e) {
+  		$(elm).focus();
+  	});
+  }
+</script>

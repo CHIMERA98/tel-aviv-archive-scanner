@@ -1,15 +1,20 @@
 import type { Env } from "../env";
 import { now, num } from "../env";
+import type { City } from "./cities";
 import { randomId } from "./crypto";
 import { runScannerJob } from "./gcp";
+import { haifaSweep, startHaifaWorker } from "./haifa";
 
 // "linked": a free reuse of another scan that is still queued or running; it shows that scan's progress.
-export type ScanStatus = "queued" | "starting" | "running" | "done" | "failed" | "expired" | "linked";
+// "filling": a Haifa scan that can be opened while its remaining documents arrive (docs/HAIFA_PLAN.md §2).
+export type ScanStatus = "queued" | "starting" | "running" | "filling" | "done" | "failed" | "expired" | "linked";
 
 export interface ScanRow {
   id: string;
   user_id: string;
-  building_id: number;
+  city: City;
+  building_key: string;
+  building_id: number | null;
   address_json: string;
   building_json: string;
   label_he: string;
@@ -29,8 +34,8 @@ export interface ScanRow {
 }
 
 export interface Selection {
-  address: Record<string, unknown> & { label_he: string; label_en: string };
-  building: Record<string, unknown> & { building_id: number };
+  address: Record<string, unknown> & { label_he: string; label_en: string; city?: City };
+  building: Record<string, unknown> & { key: string; building_id?: number | null; city?: City };
 }
 
 const ACTIVE = "('starting','running')";
@@ -58,21 +63,21 @@ export const quotaState = async (env: Env, userId: string) => {
 };
 
 /** A finished, unexpired scan of the same building that can be reused for free. */
-export const findCachedScan = (env: Env, buildingId: number) =>
+export const findCachedScan = (env: Env, buildingKey: string) =>
   env.DB.prepare(
-    "SELECT * FROM scans WHERE building_id = ? AND status = 'done' AND cached_from IS NULL AND expires_at > ? " +
+    "SELECT * FROM scans WHERE building_key = ? AND status = 'done' AND cached_from IS NULL AND expires_at > ? " +
       "ORDER BY finished_at DESC LIMIT 1",
   )
-    .bind(buildingId, now() + 3600) // at least an hour of life left
+    .bind(buildingKey, now() + 3600) // at least an hour of life left
     .first<ScanRow>();
 
-/** A scan of this building that is already queued or running; joining it is free too. */
-export const findActiveScan = (env: Env, buildingId: number) =>
+/** A scan of this building that is already queued, running or filling; joining it is free too. */
+export const findActiveScan = (env: Env, buildingKey: string) =>
   env.DB.prepare(
-    `SELECT * FROM scans WHERE building_id = ? AND status IN ('queued',${ACTIVE.slice(1, -1)}) AND cached_from IS NULL ` +
-      "ORDER BY queued_at LIMIT 1",
+    "SELECT * FROM scans WHERE building_key = ? AND status IN ('queued','starting','running','filling') " +
+      "AND cached_from IS NULL ORDER BY queued_at LIMIT 1",
   )
-    .bind(buildingId)
+    .bind(buildingKey)
     .first<ScanRow>();
 
 export const createScan = async (
@@ -87,12 +92,15 @@ export const createScan = async (
   const status: ScanStatus = cachedFrom ? (cachedFrom.status === "done" ? "done" : "linked") : "queued";
   const statements = [
     env.DB.prepare(
-      "INSERT INTO scans (id, user_id, building_id, address_json, building_json, label_he, label_en, origin, status, " +
-        "stages_json, summary_json, cached_from, queued_at, finished_at, expires_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      "INSERT INTO scans (id, user_id, city, building_key, building_id, address_json, building_json, label_he, label_en, " +
+        "origin, status, stages_json, summary_json, cached_from, queued_at, finished_at, expires_at) " +
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
     ).bind(
       id,
       userId,
-      selection.building.building_id,
+      selection.building.city ?? "tel-aviv",
+      selection.building.key,
+      selection.building.building_id ?? null,
       JSON.stringify(selection.address),
       JSON.stringify(selection.building),
       selection.address.label_he,
@@ -128,7 +136,10 @@ export const queuePosition = async (env: Env, row: ScanRow): Promise<number | nu
   return (result?.n ?? 0) + 1;
 };
 
-/** Start queued scans while fewer than MAX_RUNNING are active. Safe to call concurrently. */
+/**
+ * Start queued Tel Aviv scans while fewer than MAX_RUNNING are active, and wake the Haifa worker when Haifa has work.
+ * Safe to call concurrently.
+ */
 export const dispatch = async (env: Env): Promise<string[]> => {
   const started: string[] = [];
   const limit = num(env.MAX_RUNNING, 2);
@@ -136,8 +147,8 @@ export const dispatch = async (env: Env): Promise<string[]> => {
     // One statement, so D1's single writer makes the "fewer than limit" check and the claim atomic.
     const claimed = await env.DB.prepare(
       `UPDATE scans SET status = 'starting', dispatched_at = ?1, last_progress_at = ?1, attempts = attempts + 1
-       WHERE id = (SELECT id FROM scans WHERE status = 'queued' ORDER BY queued_at LIMIT 1)
-         AND (SELECT COUNT(*) FROM scans WHERE status IN ${ACTIVE}) < ?2
+       WHERE id = (SELECT id FROM scans WHERE status = 'queued' AND city = 'tel-aviv' ORDER BY queued_at LIMIT 1)
+         AND (SELECT COUNT(*) FROM scans WHERE status IN ${ACTIVE} AND city = 'tel-aviv') < ?2
        RETURNING id`,
     )
       .bind(now(), limit)
@@ -152,13 +163,20 @@ export const dispatch = async (env: Env): Promise<string[]> => {
       break;
     }
   }
+  try {
+    if (await startHaifaWorker(env)) started.push("haifa-worker");
+  } catch (err) {
+    console.error("haifa worker start:", err);
+  }
   return started;
 };
 
 /** Housekeeping: retry or fail scans that stopped reporting, expire old results. */
 export const sweep = async (env: Env): Promise<void> => {
   const t = now();
-  const stale = await env.DB.prepare(`SELECT id, attempts FROM scans WHERE status IN ${ACTIVE} AND last_progress_at < ?`)
+  const stale = await env.DB.prepare(
+    `SELECT id, attempts FROM scans WHERE status IN ${ACTIVE} AND city = 'tel-aviv' AND last_progress_at < ?`,
+  )
     .bind(t - STALE_S)
     .all<{ id: string; attempts: number }>();
   for (const scan of stale.results) {
@@ -168,8 +186,12 @@ export const sweep = async (env: Env): Promise<void> => {
       await failScan(env, scan.id, "The scanner stopped responding.", true);
     }
   }
+  await haifaSweep(env);
   await env.DB.prepare("UPDATE scans SET status = 'expired' WHERE status = 'done' AND expires_at < ?").bind(t).run();
   await env.DB.batch([
+    env.DB.prepare(
+      "DELETE FROM haifa_documents WHERE scan_id IN (SELECT id FROM scans WHERE status IN ('expired','failed'))",
+    ),
     env.DB.prepare("DELETE FROM login_tokens WHERE expires_at < ?").bind(t - DAY_S),
     env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?").bind(t),
   ]);

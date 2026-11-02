@@ -9,6 +9,7 @@ from PIL import Image
 from scanner import config
 
 Image.MAX_IMAGE_PIXELS = 400_000_000  # municipal plan scans are huge but trusted
+XPS_SUFFIXES = (".dwfx", ".xps", ".oxps")
 
 
 def _save_jpeg(image: Image.Image, dest: Path) -> None:
@@ -22,8 +23,9 @@ def render_pages(source: Path, out_dir: Path, prefix: str) -> tuple[int, list[Pa
     """Render up to MAX_PAGES_PER_DOCUMENT pages as JPEGs. Returns (total page count, written files)."""
     suffix = source.suffix.lower()
     written: list[Path] = []
-    if suffix == ".pdf":
-        with pymupdf.open(source) as doc:
+    if suffix in (".pdf", *XPS_SUFFIXES):
+        # Haifa's permit plans are often DWFx (Autodesk), which is XPS underneath and renders like a PDF.
+        with pymupdf.open(source, filetype="xps" if suffix in XPS_SUFFIXES else None) as doc:
             total = doc.page_count
             for index in range(min(total, config.MAX_PAGES_PER_DOCUMENT)):
                 page = doc.load_page(index)

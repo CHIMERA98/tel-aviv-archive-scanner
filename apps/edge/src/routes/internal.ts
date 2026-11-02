@@ -2,14 +2,26 @@ import { type Context, Hono, type MiddlewareHandler } from "hono";
 import type { AppContext } from "../env";
 import { now } from "../env";
 import { sha256Hex, verifyRequest } from "../lib/crypto";
+import {
+  type DeliveredDocument,
+  heartbeat,
+  markDelivered,
+  markDocument,
+  nextWork,
+  recordBlock,
+} from "../lib/haifa";
 import { dispatch, failScan, retentionSeconds, type ScanRow } from "../lib/scans";
 import { forgetActivity, notifyScanReady } from "./api";
 
-/** Signed endpoints for the Cloud Run scanner job (see scanner/edge_client.py). */
+/** Signed endpoints for the Cloud Run scanner job and the Haifa worker (see scanner/edge_client.py). */
 export const internal = new Hono<AppContext>();
 
-const ACTIVE = ["starting", "running"];
-const FILE_PATH = /^[\w\-./]{1,200}$/;
+// "filling": a Haifa scan still receiving documents from the worker.
+const ACTIVE = ["starting", "running", "filling"];
+const FILE_PATH = /^[\w\u05D0-\u05EA\-./]{1,200}$/; // plan folders can carry Hebrew plan numbers
+const CACHE_KEY = /^(?:pages\/\w{1,40}\/[0-9a-f]{16}\.html|docs\/[0-9A-F-]{36}\.\w{2,4})$/;
+const streamed = (method: string, path: string) =>
+  method === "PUT" && (path.includes("/files/") || path.startsWith("/internal/haifa/cache/"));
 
 // The signature covers the declared body digest. Small JSON bodies are read once and checked against it here;
 // file uploads (PUT) are streamed to R2 unread, because hashing tens of MB would blow the Worker's CPU budget.
@@ -25,7 +37,7 @@ const signed: MiddlewareHandler<AppContext> = async (c, next) => {
     digest,
   );
   if (!ok) return c.json({ error: "unauthorized" }, 401);
-  if (!(c.req.method === "PUT" && url.pathname.includes("/files/"))) {
+  if (!streamed(c.req.method, url.pathname)) {
     const body = await c.req.raw.arrayBuffer();
     if (body.byteLength > 1024 * 1024 || (await sha256Hex(body)) !== digest) return c.json({ error: "bad_body" }, 400);
     c.set("body", body);
@@ -34,12 +46,13 @@ const signed: MiddlewareHandler<AppContext> = async (c, next) => {
 };
 internal.use("/scans/:id", signed);
 internal.use("/scans/:id/*", signed);
+internal.use("/haifa/*", signed);
 
 const bodyOf = (c: Context<AppContext>) => c.get("body") ?? new ArrayBuffer(0);
 const jsonOf = <T>(c: Context<AppContext>): T => JSON.parse(new TextDecoder().decode(bodyOf(c)) || "{}") as T;
 
 const activeScan = (c: { env: AppContext["Bindings"] }, id: string) =>
-  c.env.DB.prepare(`SELECT * FROM scans WHERE id = ? AND status IN ('starting','running')`).bind(id).first<ScanRow>();
+  c.env.DB.prepare(`SELECT * FROM scans WHERE id = ? AND status IN ('starting','running','filling')`).bind(id).first<ScanRow>();
 
 internal.get("/scans/:id", async (c) => {
   const scan = await activeScan(c, c.req.param("id"));
@@ -99,23 +112,36 @@ internal.on(["PUT", "POST"], "/scans/:id/files/*", async (c) => {
   return c.json({ ok: true });
 });
 
+// The Haifa worker reads a scan's manifest and files back to add documents and rebuild the final outputs.
+internal.get("/scans/:id/files/*", async (c) => {
+  const id = c.req.param("id");
+  const rel = decodeURIComponent(new URL(c.req.url).pathname.split(`/scans/${id}/files/`)[1] ?? "");
+  if (!FILE_PATH.test(rel) || rel.includes("..")) return c.json({ error: "bad_path" }, 400);
+  const object = await c.env.FILES.get(`scans/${id}/${rel}`);
+  if (!object) return c.json({ error: "not_found" }, 404);
+  return new Response(object.body, { headers: { "Content-Type": contentType(rel) } });
+});
+
 internal.post("/scans/:id/done", async (c) => {
   const id = c.req.param("id");
   const summary = jsonOf<Record<string, unknown>>(c);
   const t = now();
+  const before = await activeScan(c, id);
   const updated = await c.env.DB.prepare(
     "UPDATE scans SET status = 'done', summary_json = ?, finished_at = ?, expires_at = ? " +
-      "WHERE id = ? AND status IN ('starting','running') RETURNING id",
+      "WHERE id = ? AND status IN ('starting','running','filling') RETURNING id",
   )
     .bind(JSON.stringify(summary), t, t + retentionSeconds(c.env), id)
     .first();
   if (!updated) return c.json({ error: "not_active" }, 409);
+  // A Haifa scan that already opened ("filling") got its "ready" email then; this one says everything arrived.
+  const kind = before?.status === "filling" ? "complete" : "ready";
   await c.env.DB.prepare(
     "UPDATE scans SET status = 'done', summary_json = ?, finished_at = ?, expires_at = ? WHERE cached_from = ?",
   )
     .bind(JSON.stringify(summary), t, t + retentionSeconds(c.env), id)
     .run();
-  c.executionCtx.waitUntil(Promise.all([notifyScanReady(c.env, id), dispatch(c.env), forgetActivity(c.env)]));
+  c.executionCtx.waitUntil(Promise.all([notifyScanReady(c.env, id, kind), dispatch(c.env), forgetActivity(c.env)]));
   return c.json({ ok: true });
 });
 
@@ -128,6 +154,53 @@ internal.post("/scans/:id/failed", async (c) => {
   await failScan(c.env, id, String(error).slice(0, 500), true);
   if (blocked) console.error(`scan ${id}: municipal firewall blocked the scanner`);
   c.executionCtx.waitUntil(Promise.all([dispatch(c.env), forgetActivity(c.env)]));
+  return c.json({ ok: true });
+});
+
+// ---------- Haifa worker (docs/HAIFA_PLAN.md §3.2) ----------
+
+internal.post("/haifa/next", async (c) => c.json(await nextWork(c.env)));
+
+internal.post("/haifa/heartbeat", async (c) => {
+  await heartbeat(c.env);
+  return c.json({ ok: true });
+});
+
+internal.post("/haifa/scans/:id/delivered", async (c) => {
+  const id = c.req.param("id");
+  const { summary, documents } = jsonOf<{ summary: Record<string, unknown>; documents: DeliveredDocument[] }>(c);
+  if (!(await markDelivered(c.env, id, summary ?? {}, Array.isArray(documents) ? documents : []))) {
+    return c.json({ error: "not_active" }, 409);
+  }
+  c.executionCtx.waitUntil(Promise.all([notifyScanReady(c.env, id, "ready"), forgetActivity(c.env)]));
+  return c.json({ ok: true });
+});
+
+internal.post("/haifa/scans/:id/documents/:doc", async (c) => {
+  const { status } = jsonOf<{ status: string; pages?: number }>(c);
+  const pending = await markDocument(c.env, c.req.param("id"), c.req.param("doc"), String(status));
+  return c.json({ ok: true, pending });
+});
+
+internal.post("/haifa/blocked", async (c) => {
+  const { reason, scan_id } = jsonOf<{ reason?: string; scan_id?: string | null }>(c);
+  const until = await recordBlock(c.env, scan_id ?? null, String(reason ?? "HTTP 429"));
+  console.error(`Complot blocked the Haifa worker; paused until ${new Date(until * 1000).toISOString()}`);
+  c.executionCtx.waitUntil(forgetActivity(c.env));
+  return c.json({ ok: true, blocked_until: until });
+});
+
+// Complot pages and documents, kept privately for 30 days (R2 lifecycle on cache/haifa/) so nothing is fetched twice.
+internal.on(["GET", "PUT"], "/haifa/cache/*", async (c) => {
+  const key = decodeURIComponent(new URL(c.req.url).pathname.split("/haifa/cache/")[1] ?? "");
+  if (!CACHE_KEY.test(key)) return c.json({ error: "bad_key" }, 400);
+  if (c.req.method === "GET") {
+    const object = await c.env.FILES.get(`cache/haifa/${key}`);
+    return object ? new Response(object.body) : c.json({ error: "not_found" }, 404);
+  }
+  const body = c.req.raw.body;
+  if (!body) return c.json({ error: "empty" }, 400);
+  await c.env.FILES.put(`cache/haifa/${key}`, body, { sha256: c.req.header("x-content-sha256") });
   return c.json({ ok: true });
 });
 

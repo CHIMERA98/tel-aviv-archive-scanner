@@ -27,7 +27,7 @@ def sign(key: bytes, method: str, path: str, body: bytes, now: int | None = None
 
 
 class EdgeClient:
-    def __init__(self, base_url: str, key: bytes, scan_id: str) -> None:
+    def __init__(self, base_url: str, key: bytes, scan_id: str = "") -> None:
         self._base = base_url.rstrip("/")
         self._key = key
         self._scan = scan_id
@@ -57,6 +57,8 @@ class EdgeClient:
                 if last:
                     raise
             else:
+                if response.status_code == 404 and method == "GET":
+                    return response  # callers check for missing files / cache misses
                 if response.status_code < 500 or last:
                     response.raise_for_status()
                     return response
@@ -108,3 +110,58 @@ class EdgeClient:
 
         await asyncio.gather(*(one(p) for p in files))
         return len(files)
+
+    # ---------- Haifa worker (docs/HAIFA_PLAN.md §3.2) ----------
+
+    def for_scan(self, scan_id: str) -> "EdgeClient":
+        """A client for one scan's progress and uploads, sharing this one's connection pool."""
+        other = EdgeClient.__new__(EdgeClient)
+        other._base, other._key, other._scan, other._client = self._base, self._key, scan_id, self._client
+        return other
+
+    async def download_file(self, rel: str, dest: Path) -> bool:
+        response = await self._call("GET", self._scan_path(f"/files/{quote(rel)}"))
+        if response.status_code == 404:
+            return False
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(response.content)
+        return True
+
+    async def haifa_next(self) -> dict:
+        return (await self._call("POST", "/internal/haifa/next", json={})).json()
+
+    async def haifa_heartbeat(self) -> None:
+        await self._call("POST", "/internal/haifa/heartbeat", json={})
+
+    async def haifa_delivered(self, summary: dict, documents: list[dict]) -> None:
+        await self._call("POST", self._haifa_path("/delivered"), json={"summary": summary, "documents": documents})
+
+    async def haifa_document(self, doc_id: str, status: str, pages: int) -> dict:
+        path = self._haifa_path(f"/documents/{quote(doc_id)}")
+        return (await self._call("POST", path, json={"status": status, "pages": pages})).json()
+
+    async def haifa_blocked(self, reason: str) -> None:
+        await self._call("POST", "/internal/haifa/blocked", json={"reason": reason, "scan_id": self._scan or None})
+
+    async def cache_get(self, key: str) -> bytes | None:
+        response = await self._call("GET", f"/internal/haifa/cache/{quote(key)}")
+        return None if response.status_code == 404 else response.content
+
+    async def cache_put(self, key: str, data: bytes) -> None:
+        await self._call("PUT", f"/internal/haifa/cache/{quote(key)}", body=data)
+
+    def _haifa_path(self, suffix: str) -> str:
+        return f"/internal/haifa/scans/{self._scan}{suffix}"
+
+
+class EdgeCache:
+    """Complot results kept in R2 for 30 days, read and written through the edge."""
+
+    def __init__(self, edge: EdgeClient) -> None:
+        self._edge = edge
+
+    async def get(self, key: str) -> bytes | None:
+        return await self._edge.cache_get(key)
+
+    async def put(self, key: str, data: bytes) -> None:
+        await self._edge.cache_put(key, data)

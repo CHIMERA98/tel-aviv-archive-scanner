@@ -195,6 +195,7 @@ pre { background: var(--soft); padding: 12px; border-radius: var(--radius); over
 .dot.running { background: var(--fg); }
 .dot.queued { background: transparent; border: 1.5px solid var(--muted); }
 .dot.done { background: var(--ok); }
+.dot.filling { background: var(--ok); animation: pulse 1.6s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   .stage.running .state::before, .dot.running { animation: none; }

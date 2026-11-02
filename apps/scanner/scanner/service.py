@@ -4,7 +4,9 @@ The edge can't call the city's GIS reliably itself (geo-block), so it asks this 
 Requests are signed exactly like the scanner's calls to the edge (see edge_client.sign).
 
   GET /health
-  GET /lookup?q=<address text>  -> {"matches": [{"address": ..., "building": ... | null}, ...]}
+  GET /lookup?q=<address text>[&city=tel-aviv|haifa]
+      -> {"city": ..., "matches": [{"address": ..., "building": ... | null}, ...]}
+      Without `city`, "חיפה / Haifa" in the text picks Haifa; otherwise Tel Aviv.
 """
 
 import asyncio
@@ -19,18 +21,15 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
+from scanner import cities
 from scanner.http import Fetcher, SourceBlockedError
-from scanner.sources import gis
 
 MAX_SKEW_S = 300
-STREETS_TTL_S = 24 * 3600
 
 
 class State:
     def __init__(self) -> None:
         self.fetcher: Fetcher | None = None
-        self.streets: list[gis.Street] = []
-        self.streets_loaded_at = 0.0
         self.lock = asyncio.Lock()
 
 
@@ -56,14 +55,6 @@ def verify(request: Request, body: bytes) -> bool:
     return hmac.compare_digest(expected, parts["v1"])
 
 
-async def streets() -> list[gis.Street]:
-    async with state.lock:
-        if not state.streets or time.time() - state.streets_loaded_at > STREETS_TTL_S:
-            state.streets = await gis.load_streets(_fetcher())
-            state.streets_loaded_at = time.time()
-    return state.streets
-
-
 async def health(_: Request) -> JSONResponse:
     return JSONResponse({"ok": True})
 
@@ -74,20 +65,23 @@ async def lookup(request: Request) -> JSONResponse:
     query = (request.query_params.get("q") or "").strip()[:120]
     if not query:
         return JSONResponse({"error": "missing q"}, status_code=400)
+    city = cities.parse_city(request.query_params.get("city")) or cities.detect_city(query)
     try:
-        matches = await gis.search_addresses(_fetcher(), query, await streets(), limit=5)
-        buildings = await asyncio.gather(*(gis.building_at(_fetcher(), m.x, m.y) for m in matches))
+        async with state.lock:  # loads the street list once per city
+            await cities.streets(_fetcher(), city)
+        found = await cities.lookup(_fetcher(), city, query, limit=5)
     except SourceBlockedError as err:
         return JSONResponse({"error": str(err)}, status_code=503)
     return JSONResponse(
         {
+            "city": city,
             "matches": [
                 {
                     "address": m.model_dump(mode="json") | {"label_en": m.label_en},
                     "building": b.model_dump(mode="json") if b else None,
                 }
-                for m, b in zip(matches, buildings, strict=True)
-            ]
+                for m, b in found
+            ],
         }
     )
 

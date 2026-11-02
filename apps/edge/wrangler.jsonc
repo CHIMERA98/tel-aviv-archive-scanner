@@ -9,7 +9,9 @@
   "workers_dev": true,
   "routes": [
     { "pattern": "tel-aviv-archive-scanner.work", "custom_domain": true },
-    { "pattern": "www.tel-aviv-archive-scanner.work", "custom_domain": true }
+    { "pattern": "www.tel-aviv-archive-scanner.work", "custom_domain": true },
+    // Haifa (docs/HAIFA_PLAN.md): same Worker, the host picks the city.
+    { "pattern": "haifa.tel-aviv-archive-scanner.work", "custom_domain": true }
   ],
   "observability": { "enabled": true },
 
@@ -28,13 +30,17 @@
 
   "vars": {
     "PUBLIC_URL": "https://tel-aviv-archive-scanner.work",
+    "HAIFA_URL": "https://haifa.tel-aviv-archive-scanner.work",
+    "COOKIE_DOMAIN": ".tel-aviv-archive-scanner.work",
     "EMAIL_FROM": "Archive Scanner <scanner@tel-aviv-archive-scanner.work>",
     "TURNSTILE_SITE_KEY": "0x4AAAAAAFrdJJd253DalHLC",
-    "TURNSTILE_HOSTNAMES": "tel-aviv-archive-scanner.work",
+    "TURNSTILE_HOSTNAMES": "tel-aviv-archive-scanner.work,haifa.tel-aviv-archive-scanner.work",
     "LOOKUP_URL": "https://lookup-fzxgzn6xxq-zf.a.run.app",
     "GCP_PROJECT": "tlv-archive-scanner",
     "GCP_REGION": "me-west1",
     "GCP_JOB": "scanner",
+    "GCP_HAIFA_JOB": "haifa-worker",
+    "COMPLOT_INTERVAL_S": "12",
     "MAX_RUNNING": "2",
     "WEEKLY_QUOTA": "3",
     "DAILY_CAP": "30",

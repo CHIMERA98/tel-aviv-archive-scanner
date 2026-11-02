@@ -29,7 +29,9 @@ files.get("/:id/*", async (c) => {
   const scan = await c.env.DB.prepare("SELECT status, expires_at, label_en FROM scans WHERE id = ? AND cached_from IS NULL")
     .bind(id)
     .first<Pick<ScanRow, "status" | "expires_at" | "label_en">>();
-  if (!scan || scan.status !== "done" || (scan.expires_at ?? 0) < now()) {
+  // A Haifa scan can be opened while its documents arrive ("filling"); its 24 hours start when it's done.
+  const open = scan && (scan.status === "filling" || (scan.status === "done" && (scan.expires_at ?? 0) >= now()));
+  if (!open) {
     return c.json({ error: "expired_or_missing" }, 410);
   }
 

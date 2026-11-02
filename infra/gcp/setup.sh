@@ -57,15 +57,24 @@ gcloud run jobs deploy scanner --region "$REGION" --image "$IMAGE" --tasks 1 --m
   --task-timeout 45m --cpu 2 --memory 4Gi --service-account "$RUNTIME_SA" \
   --set-env-vars "EDGE_URL=$EDGE_URL,SCAN_TIMEOUT_S=2400" --set-secrets "SCANNER_HMAC_KEY=scanner-hmac:latest" --quiet
 
+echo "== Haifa worker (docs/HAIFA_PLAN.md): the only job that talks to Complot; the edge runs one execution at a time"
+# 4 GiB: Cloud Run's disk lives in memory and single Haifa plan files reach 70 MB.
+gcloud run jobs deploy haifa-worker --region "$REGION" --image "$IMAGE" --tasks 1 --max-retries 0 \
+  --task-timeout 3h --cpu 1 --memory 4Gi --service-account "$RUNTIME_SA" \
+  --command python --args=-m,scanner.haifa_worker \
+  --set-env-vars "EDGE_URL=$EDGE_URL,WORKER_MAX_S=10200" --set-secrets "SCANNER_HMAC_KEY=scanner-hmac:latest" --quiet
+
 echo "== Lookup service (address -> building), scale to zero"
 gcloud run deploy lookup --region "$REGION" --image "$IMAGE" --command python --args=-m,scanner.service \
   --cpu 1 --memory 512Mi --min-instances 0 --max-instances 2 --concurrency 20 --service-account "$RUNTIME_SA" \
   --set-secrets "SCANNER_HMAC_KEY=scanner-hmac:latest" --allow-unauthenticated --quiet
 # Requests are still authenticated: every /lookup call must carry the HMAC signature.
 
-echo "== Let the edge start (only) this job"
-gcloud run jobs add-iam-policy-binding scanner --region "$REGION" --member "serviceAccount:$DISPATCH_SA" \
-  --role roles/run.developer --quiet >/dev/null
+echo "== Let the edge start (only) these jobs"
+for job in scanner haifa-worker; do
+  gcloud run jobs add-iam-policy-binding "$job" --region "$REGION" --member "serviceAccount:$DISPATCH_SA" \
+    --role roles/run.developer --quiet >/dev/null
+done
 gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_SA" --member "serviceAccount:$DISPATCH_SA" \
   --role roles/iam.serviceAccountUser --quiet >/dev/null
 

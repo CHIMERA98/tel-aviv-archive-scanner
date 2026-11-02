@@ -70,7 +70,27 @@ export const STRINGS = {
     docsCount: (n) => `${n} מסמכים`,
     filesDeleted: "הקבצים נמחקו",
     aiPrompt: (url, label) =>
-      `קרא/י את ארכיון הבניין ${label} בתל אביב-יפו בכתובת ${url} ופעל/י לפי ההוראות שבעמוד: היסטוריה כרונולוגית של הבניין, עם מספרי מסמכים ותאריכים.`,
+      `קרא/י את ארכיון הבניין ${label} בכתובת ${url} ופעל/י לפי ההוראות שבעמוד: היסטוריה כרונולוגית של הבניין, עם מספרי מסמכים ותאריכים.`,
+    cities: {
+      "tel-aviv": {
+        title: "סורק הארכיון של תל אביב-יפו",
+        intro: "מפות היסטוריות, תוכניות בניין עיר ומסמכי ארכיון ההנדסה של בניין אחד — במקום אחד.",
+        placeholder: "כתובת, למשל: לבונטין 15",
+      },
+      haifa: {
+        title: "סורק הארכיון של חיפה",
+        intro: "כל הבקשות להיתר, ההיתרים ומסמכי ההנדסה של בניין בחיפה, עם תוכניות בניין עיר ומפות היסטוריות.",
+        placeholder: "כתובת, למשל: בן גוריון 50",
+      },
+    },
+    otherCity: { "tel-aviv": "סורק חיפה", haifa: "סורק תל אביב" },
+    height: "גובה",
+    meters: "מ'",
+    conservation: "לשימור",
+    filling: (ready, total) => `${ready} מתוך ${total} מסמכים הגיעו · השאר ממשיכים להגיע`,
+    fillingHint: "אפשר כבר לנתח ולהוריד. הקבצים מתעדכנים כשכל המסמכים יגיעו, ונשלח אימייל.",
+    requests: "בקשות להיתר",
+    stateFilling: "מוסיף מסמכים",
   },
   en: {
     brand: "Archive Scanner",
@@ -142,6 +162,26 @@ export const STRINGS = {
     docsCount: (n) => `${n} documents`,
     filesDeleted: "Files deleted",
     aiPrompt: (url, label) =>
-      `Read the building archive of ${label} (Tel Aviv-Yafo) at ${url} and follow the instructions on that page: a chronological history of the building, citing document IDs and dates.`,
+      `Read the building archive of ${label} at ${url} and follow the instructions on that page: a chronological history of the building, citing document IDs and dates.`,
+    cities: {
+      "tel-aviv": {
+        title: "Tel Aviv-Yafo Archive Scanner",
+        intro: "Historic maps, zoning plans and engineering-archive records for one building — in one place.",
+        placeholder: "Address, e.g. Levontin 15",
+      },
+      haifa: {
+        title: "Haifa Archive Scanner",
+        intro: "Every permit request, permit and engineering document for a Haifa building, with zoning plans and historic maps.",
+        placeholder: "Address in Hebrew, e.g. בן גוריון 50",
+      },
+    },
+    otherCity: { "tel-aviv": "Haifa scanner", haifa: "Tel Aviv scanner" },
+    height: "Height",
+    meters: "m",
+    conservation: "Listed for conservation",
+    filling: (ready, total) => `${ready} of ${total} documents in · the rest keep arriving`,
+    fillingHint: "You can analyze and download already. The files update when every document is in, and we'll email you.",
+    requests: "Permit requests",
+    stateFilling: "adding documents",
   },
 };

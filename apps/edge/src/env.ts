@@ -9,6 +9,8 @@ export interface Env {
   EMAIL?: SendEmail;
 
   PUBLIC_URL: string;
+  HAIFA_URL?: string; // Haifa's own host on the same Worker, e.g. https://haifa.tel-aviv-archive-scanner.work
+  COOKIE_DOMAIN?: string; // e.g. .tel-aviv-archive-scanner.work, so one sign-in covers both hosts
   EMAIL_FROM: string;
   TURNSTILE_SITE_KEY: string;
   TURNSTILE_HOSTNAMES: string; // comma separated
@@ -16,6 +18,8 @@ export interface Env {
   GCP_PROJECT: string;
   GCP_REGION: string;
   GCP_JOB: string;
+  GCP_HAIFA_JOB?: string; // the single Haifa worker job (default "haifa-worker")
+  COMPLOT_INTERVAL_S?: string; // seconds between Complot page calls (default 12)
   MAX_RUNNING: string;
   WEEKLY_QUOTA: string;
   DAILY_CAP: string;

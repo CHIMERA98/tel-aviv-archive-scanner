@@ -44,9 +44,9 @@ def normalize_street(name: str) -> str:
     return re.sub(r"\s+", " ", name).strip().lower()
 
 
-def parse_address(text: str) -> ParsedAddress | None:
+def parse_address(text: str, city_words: re.Pattern[str] = CITY_WORDS) -> ParsedAddress | None:
     """Split free text like 'הגר"א 27, תל אביב' or 'Levontin 15a' into street, number, entrance."""
-    cleaned = CITY_WORDS.sub(" ", text).replace(",", " ")
+    cleaned = city_words.sub(" ", text).replace(",", " ")
     match = HOUSE.search(cleaned)
     if not match:
         return None

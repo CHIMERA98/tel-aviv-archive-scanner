@@ -2,6 +2,10 @@ import { STRINGS } from "./i18n.js";
 
 const lang = document.documentElement.lang === "en" ? "en" : "he";
 const t = STRINGS[lang];
+// The Haifa host serves Haifa (?city=haifa does the same locally); everywhere else is Tel Aviv.
+const city = location.hostname.startsWith("haifa.") || new URLSearchParams(location.search).get("city") === "haifa" ? "haifa" : "tel-aviv";
+const c = t.cities[city];
+document.title = c.title;
 const base = lang === "en" ? "/en" : "";
 const app = document.getElementById("app");
 const PENDING_KEY = "tas.pending-selection";
@@ -160,8 +164,16 @@ const layout = () => {
     h("div", { class: "center" }, stepView, dots),
     stepsNav,
     activityView,
-    h("footer", {}, link(`${base}/privacy`, t.privacy, privacyStep)),
+    h("footer", {}, link(`${base}/privacy`, t.privacy, privacyStep), " · ", h("a", { href: otherCityUrl() }, t.otherCity[city])),
   );
+};
+
+// The two cities live on sibling hosts (haifa.<domain> and <domain>); locally, ?city=haifa switches.
+const otherCityUrl = () => {
+  const host = location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") return city === "haifa" ? `${base}/` : `${base}/?city=haifa`;
+  const target = city === "haifa" ? host.replace(/^haifa\./, "") : `haifa.${host.replace(/^www\./, "")}`;
+  return `${location.protocol}//${target}${base}/`;
 };
 
 // ---------- activity: what is scanning, waiting and already scanned ----------
@@ -181,6 +193,7 @@ const renderActivity = ({ total, items }) => {
   const row = (item) => {
     const meta =
       item.status === "running" ? (item.stage ? t.stages[item.stage] : t.state.running)
+      : item.status === "filling" ? t.stateFilling
       : item.status === "queued" ? t.inLine(item.position)
       : item.status === "done" ? [item.counts ? t.docsCount(item.counts.archive) : null, ago(item.finished_at)].filter(Boolean).join(" · ")
       : `${t.filesDeleted} · ${ago(item.finished_at)}`;
@@ -190,9 +203,11 @@ const renderActivity = ({ total, items }) => {
       : h("div", { class: "expired" }, content));
   };
   activityView.replaceChildren(
-    h("h2", {}, t.activityTitle),
-    total ? h("p", { class: "muted small" }, t.scannedTotal(total)) : null,
-    items.length ? h("ul", {}, items.map(row)) : h("p", { class: "muted small" }, t.activityEmpty),
+    ...[
+      h("h2", {}, t.activityTitle),
+      total ? h("p", { class: "muted small" }, t.scannedTotal(total)) : null,
+      items.length ? h("ul", {}, items.map(row)) : h("p", { class: "muted small" }, t.activityEmpty),
+    ].filter(Boolean), // replaceChildren would print null as text
   );
 };
 
@@ -202,7 +217,7 @@ const quotaLine = (quota) =>
   quota ? h("p", { class: "muted small" }, quota.weeklyLeft > 0 ? t.quota(quota.weeklyLeft, quota.weeklyLimit) : t.quotaOut) : null;
 
 const searchStep = () => {
-  const input = h("input", { type: "text", name: "q", placeholder: t.placeholder, autocomplete: "street-address", "aria-label": t.placeholder });
+  const input = h("input", { type: "text", name: "q", placeholder: c.placeholder, autocomplete: "street-address", "aria-label": c.placeholder });
   const button = h("button", { type: "submit" }, t.search);
   const note = h("div");
   const quota = h("div");
@@ -213,7 +228,7 @@ const searchStep = () => {
     if (q.length < 3) return input.focus();
     button.disabled = true;
     button.textContent = t.searching;
-    const { ok, data } = await api(`/lookup?q=${encodeURIComponent(q)}`);
+    const { ok, data } = await api(`/lookup?q=${encodeURIComponent(q)}&city=${city}`);
     button.disabled = false;
     button.textContent = t.search;
     if (!ok) return note.replaceChildren(h("p", { class: "notice bad" }, t.lookupFailed));
@@ -225,8 +240,8 @@ const searchStep = () => {
   return {
     url: `${base}/`,
     root: view(
-      h("h1", {}, t.title),
-      h("p", { class: "muted" }, t.intro),
+      h("h1", {}, c.title),
+      h("p", { class: "muted" }, c.intro),
       h("form", { class: "row", onsubmit: search }, input, button),
       quota,
       new URLSearchParams(location.search).get("signin") === "expired" ? h("p", { class: "notice" }, t.signinExpired) : null,
@@ -252,7 +267,13 @@ const chooseStep = (matches) => ({
 });
 
 const describeBuilding = (b) =>
-  [b.year_built ? `${t.built} ${b.year_built}` : null, b.floors ? `${b.floors} ${t.floors}` : null, `${t.buildingId} ${b.building_id}`]
+  [
+    b.year_built ? `${t.built} ${b.year_built}` : null,
+    b.floors ? `${b.floors} ${t.floors}` : null,
+    b.height_m ? `${t.height} ${Math.round(b.height_m)} ${t.meters}` : null,
+    b.conservation ? [t.conservation, b.conservation.grade].filter(Boolean).join(" ") : null,
+    b.building_id ? `${t.buildingId} ${b.building_id}` : null,
+  ]
     .filter(Boolean)
     .join(" · ");
 
@@ -357,12 +378,17 @@ const scanStep = (id) => {
     if (scan.status === "failed") parts.push(h("p", { class: "notice bad" }, t.failed));
     else if (scan.status === "expired") parts.push(h("p", { class: "notice" }, t.expired));
     else if (scan.status === "done") parts.push(...results(scan, name));
-    else {
+    else if (scan.status === "filling") {
+      // Haifa: usable now, documents still arriving.
+      const d = scan.documents || { ready: 0, total: 0 };
+      parts.push(h("p", { class: "notice" }, t.filling(d.ready, d.total)), h("p", { class: "muted small" }, t.fillingHint));
+      parts.push(...results(scan, name));
+    } else {
       if (scan.queue_position) parts.push(h("p", { class: "notice" }, t.queued(scan.queue_position)));
       parts.push(stagesList(scan.stages), h("p", { class: "muted small" }, t.leaveHint));
     }
-    root.replaceChildren(...parts);
-    if (!["done", "failed", "expired"].includes(scan.status)) timer = setTimeout(render, 3000);
+    root.replaceChildren(...parts.filter(Boolean));
+    if (!["done", "failed", "expired"].includes(scan.status)) timer = setTimeout(render, scan.status === "filling" ? 15000 : 3000);
   };
   return {
     root,
@@ -384,7 +410,7 @@ const stagesList = (stages = {}) =>
 // Claude's documented install link: opens "Add custom connector" prefilled; the user confirms and signs in.
 const claudeInstallUrl = () =>
   "https://claude.ai/customize/connectors?modal=add-custom-connector" +
-  `&connectorName=${encodeURIComponent("Tel Aviv Archive Scanner")}&connectorUrl=${encodeURIComponent(`${location.origin}/mcp`)}`;
+  `&connectorName=${encodeURIComponent("Archive Scanner")}&connectorUrl=${encodeURIComponent(`${location.origin}/mcp`)}`;
 
 const results = (scan, name) => {
   const file = (path) => `${scan.files_base}${path}`;
@@ -403,6 +429,7 @@ const results = (scan, name) => {
     h("div", { class: "actions quiet" },
       h("a", { href: file("bundle.zip") }, t.zip),
       h("a", { href: file("index.csv") }, t.index),
+      scan.city === "haifa" ? h("a", { href: file("requests.md"), target: "_blank" }, t.requests) : null,
       h("a", { href: file(lang === "he" ? "PROMPT.he.md" : "PROMPT.en.md"), target: "_blank" }, t.prompt),
       h("a", { href: file("archive.pptx") }, t.archiveDeck),
       h("a", { href: file("maps_plans.pptx") }, t.mapsDeck)),
@@ -498,8 +525,8 @@ const privacyStep = () => {
         ? "רשימת הפעילות באתר מציגה אילו כתובות נסרקות ונסרקו, בלי לציין מי ביקש אותן."
         : "The activity list on the site shows which addresses are being or were scanned, never who asked for them."),
       h("p", {}, he
-        ? "קבצי הסריקה הם מסמכים ציבוריים של עיריית תל אביב-יפו ו-MapJunction. הם נמחקים אוטומטית 24 שעות אחרי שהסריקה מסתיימת."
-        : "Scan files are public records from the Tel Aviv-Yafo municipality and MapJunction. They are deleted automatically 24 hours after a scan finishes."),
+        ? "קבצי הסריקה הם מסמכים ציבוריים של עיריות תל אביב-יפו וחיפה (אתר ההנדסה של חיפה פועל על מערכת קומפלוט), ומפות היסטוריות מ-MapJunction ומ-mapwarper.net. הם נמחקים אוטומטית 24 שעות אחרי שהסריקה מסתיימת."
+        : "Scan files are public records from the Tel Aviv-Yafo and Haifa municipalities (Haifa's engineering site runs on Complot), with historic maps from MapJunction and mapwarper.net. They are deleted automatically 24 hours after a scan finishes."),
       h("p", {}, he ? "אנחנו לא משתמשים בעוגיות פרסום או מעקב. עוגייה אחת שומרת את הכניסה שלכם." : "No advertising or tracking cookies. One cookie keeps you signed in."),
     ),
   };
