@@ -25,6 +25,8 @@ const COPY = {
     requests: (link: string) =>
       `בחיפה כל בקשה להיתר מסוכמת בקובץ requests.md (סוג, שימוש, מבקש ועורך, היתר, אירועים והחלטות ועדה). קראו אותו לפני המסמכים: ${link}`,
     pending: "עדיין לא הורד — הקישור פותח אותו באתר העירייה",
+    partial: (ready: number, total: number) =>
+      `הרשימה עדיין חלקית: עד עכשיו הגיעו ${ready} מתוך ${total} מסמכים, והשאר עדיין מורדים. אמרו למשתמש בתחילת התשובה שהניתוח מבוסס רק על חלק מהמסמכים ושעדיף לחזור אליו כשהסריקה תסתיים.`,
     mapRights:
       "חלק מהמפות ההיסטוריות לקוחות מ-Palestine Open Maps. המקור המדויק מופיע בעמודת ההערה ומתחת לתמונה, וזכויות הפרסום שלהן אינן ידועות: ציינו את המקור בכל פעם שאתם משתמשים במפה כזו, ואל תציעו לפרסם אותה.",
     forAi: "הוראות ל-AI שקורא את העמוד",
@@ -60,6 +62,8 @@ const COPY = {
     requests: (link: string) =>
       `In Haifa every permit request is summarised in requests.md (type, use, applicant and architect, permit, events, committee decisions). Read it before the documents: ${link}`,
     pending: "not downloaded yet — the link opens it on the municipal site",
+    partial: (ready: number, total: number) =>
+      `This list is still partial: ${ready} of ${total} documents have arrived so far, and the rest are still downloading. Tell the user at the start of your answer that the analysis rests on only some of the documents and is best repeated once the scan is done.`,
     mapRights:
       "Some historic maps come from Palestine Open Maps. Their exact source is in the note column and under the image, and their publishing rights are unknown: name that source whenever you use such a map, and don't suggest republishing it.",
     forAi: "Instructions for the AI reading this page",
@@ -100,7 +104,7 @@ export const aiPage = (lang: Lang) => async (c: Context<AppContext>) => {
   if (typeof loaded === "string") {
     return c.html(page(lang, t.unavailable, `<p>${esc(t.unavailable)}</p>`), 404, { "X-Robots-Tag": "noindex" });
   }
-  const { manifest, sourceId } = loaded;
+  const { manifest, sourceId, arriving } = loaded;
   const haifa = manifest.city === "haifa";
   const base = `${baseUrl(c.env, manifest.city ?? "tel-aviv")}/files/${sourceId}/`;
   const connect = `${c.env.PUBLIC_URL}${lang === "en" ? "/en" : ""}/connect`;
@@ -142,6 +146,7 @@ export const aiPage = (lang: Lang) => async (c: Context<AppContext>) => {
   const body =
     `<h1>${esc(t.title(a.label_he))}</h1><p>${esc(facts.join(" · "))}</p><p>${esc(t.summary(counts))}</p>` +
     `<h2>${esc(t.forAi)}</h2><ol>${[
+      ...(arriving ? [t.partial(arriving.ready, arriving.total)] : []),
       ...(haifa && manifest.requests?.length ? [t.requests(base + "requests.md")] : []),
       ...t.instructions(sourceId, connect, example),
       ...(manifest.documents.some((d) => d.source === "map" && d.note) ? [t.mapRights] : []),
@@ -161,7 +166,8 @@ export const aiPage = (lang: Lang) => async (c: Context<AppContext>) => {
 
   return c.html(page(lang, t.title(a.label_he), body), 200, {
     "X-Robots-Tag": "noindex",
-    "Cache-Control": "public, max-age=300",
+    // A filling scan's page changes as documents arrive.
+    "Cache-Control": arriving ? "no-store" : "public, max-age=300",
   });
 };
 
