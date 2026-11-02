@@ -32,7 +32,7 @@ const state = (env: Env, source: string) =>
     .bind(source)
     .first<SourceState>();
 
-const defaultInterval = (env: Env) => num(env.COMPLOT_INTERVAL_S, 12);
+const defaultInterval = (env: Env) => num(env.COMPLOT_INTERVAL_S, 18);
 
 const interval = (env: Env, complot: SourceState | null) =>
   complot?.interval_s && (complot.slow_until ?? 0) > now() ? complot.interval_s : defaultInterval(env);

@@ -19,7 +19,7 @@ export interface Env {
   GCP_REGION: string;
   GCP_JOB: string;
   GCP_HAIFA_JOB?: string; // the single Haifa worker job (default "haifa-worker")
-  COMPLOT_INTERVAL_S?: string; // seconds between Complot page calls (default 12)
+  COMPLOT_INTERVAL_S?: string; // seconds between Complot page calls (default 18)
   MAX_RUNNING: string;
   WEEKLY_QUOTA: string;
   DAILY_CAP: string;

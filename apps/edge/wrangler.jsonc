@@ -40,7 +40,7 @@
     "GCP_REGION": "me-west1",
     "GCP_JOB": "scanner",
     "GCP_HAIFA_JOB": "haifa-worker",
-    "COMPLOT_INTERVAL_S": "12",
+    "COMPLOT_INTERVAL_S": "18",
     "MAX_RUNNING": "2",
     "WEEKLY_QUOTA": "3",
     "DAILY_CAP": "30",

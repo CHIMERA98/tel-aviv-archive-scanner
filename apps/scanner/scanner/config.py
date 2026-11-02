@@ -74,7 +74,7 @@ COMPLOT_BASE = os.environ.get("COMPLOT_BASE", "https://handasi.complot.co.il")
 COMPLOT_PAGES = f"{COMPLOT_BASE}/magicscripts/mgrqispi.dll?appname=cixpa&prgname="
 COMPLOT_SITE_ID = 16
 COMPLOT_CITY_CODE = 4000
-COMPLOT_INTERVAL_S = 12.0  # default gap between page calls; the edge can raise it after a block
+COMPLOT_INTERVAL_S = 18.0  # default gap between page calls; the edge can raise it after a block
 # A first delivery downloads at most this many documents before the scan opens; the rest arrive in the background.
 HAIFA_FIRST_DELIVERY_DOCS = 15
 # Haifa permit plans reach 70 MB each. Larger files stay downloadable one by one but are left out of bundle.zip,

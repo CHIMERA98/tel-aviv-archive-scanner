@@ -103,7 +103,7 @@ def main(argv: list[str] | None = None) -> None:
     scan = sub.add_parser("scan", help="Scan a building into a folder")
     scan.add_argument("address")
     scan.add_argument("--city", choices=cities.CITIES, help="Default: Haifa if the text says so, else Tel Aviv")
-    scan.add_argument("--interval", type=float, default=12.0, help="Haifa: seconds between Complot page calls")
+    scan.add_argument("--interval", type=float, default=18.0, help="Haifa: seconds between Complot page calls")
     scan.add_argument("--first-only", action="store_true", help="Haifa: stop after the first delivery")
     scan.add_argument("--out", default="out")
     scan.add_argument("--pick", type=int, default=0, help="Which address match to use (see lookup)")

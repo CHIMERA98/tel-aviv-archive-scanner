@@ -125,7 +125,7 @@ describe("haifa", () => {
     const { scanId } = await startHaifaScan(cookie, 51);
 
     const first = await next();
-    expect(first).toMatchObject({ kind: "scan", scan_id: scanId, interval_s: 12 });
+    expect(first).toMatchObject({ kind: "scan", scan_id: scanId, interval_s: 18 });
     const manifest = new TextEncoder().encode(
       JSON.stringify({ city: "haifa", address: haifaAddress(51), building: {}, plans: [], warnings: [], documents: [] }),
     );
@@ -190,7 +190,7 @@ describe("haifa", () => {
 
     // After the cool-down: the same scan resumes, 50% slower.
     await testEnv.DB.prepare("UPDATE source_state SET blocked_until = ? WHERE source = 'complot'").bind(Math.floor(Date.now() / 1000) - 1).run();
-    expect(await next()).toMatchObject({ kind: "scan", scan_id: scanId, interval_s: 18 });
+    expect(await next()).toMatchObject({ kind: "scan", scan_id: scanId, interval_s: 27 });
   });
 
   it("puts a document that failed just before a silent block back in the queue", async () => {
