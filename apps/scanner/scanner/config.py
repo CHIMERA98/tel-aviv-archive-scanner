@@ -82,5 +82,47 @@ HAIFA_MAPS = (
     (108628, "Haifa 1949", 1949, (34.9867347, 32.7975553, 35.0183737, 32.825381)),
     (109144, "Haifa 1949 (full sheet)", 1949, (34.9860047, 32.7971918, 35.0191955, 32.8255564)),
 )
+# Palestine Open Maps (palopenmaps.org, by Visualizing Palestine): georeferenced maps of mandate Palestine as XYZ
+# tiles (docs/HAIFA_PLAN.md §11). It states no license, so every map names its exact source and says so.
+PALOPENMAPS_SITE = "https://palopenmaps.org/"
+PALOPENMAPS_RIGHTS = "Publishing rights unknown: Palestine Open Maps states no license for these maps."
+_POM = "Palestine Open Maps (palopenmaps.org)"
+# key, title, year, tiles, deepest zoom used, source (catalog layer name, original author, scan source).
+PALOPENMAPS_LAYERS = (
+    (
+        "pal63k-1880",
+        "Western Palestine 1:63,360 (PEF survey, 1870s)",
+        1878,
+        "https://palopenmaps.org/tiles/pal63k-1880/{z}/{x}/{y}@2x.jpg",
+        15,
+        f'{_POM}, layer "Western Palestine, 1:63,000, 1870s". Map: Palestine Exploration Fund. '
+        "Scans: David Rumsey Historical Map Collection, National Library of Australia.",
+    ),
+    (
+        "pal-1940s",
+        "Survey of Palestine city map (1930s-40s)",
+        None,
+        "https://palopenmaps.org/tiles/pal-1940s/{z}/{x}/{y}.jpg",
+        19,
+        f'{_POM}, layer "Combined Maps, 1930s/40s". Map: Survey of Palestine. Scan: National Library of Israel.',
+    ),
+    (
+        "pal20k-1940s",
+        "Palestine 1:20,000 (Survey of Palestine, 1940s)",
+        1942,
+        "https://palopenmaps.org/tiles/pal20k-1940s/{z}/{x}/{y}.jpg",
+        16,
+        f'{_POM}, layer "Palestine, 1:20,000, 1940s". Map: Survey of Palestine. Scan: National Library of Israel.',
+    ),
+    (
+        "aerial1940s",
+        "Aerial photographs (RAF, 1940s)",
+        1944,
+        "https://cdn.jsdelivr.net/gh/bothness/pom-tiles@2d154a81c81c2647f74dd4ceee4b1bee66119e79/aerial1940s/{z}/{x}/{y}.png",
+        16,
+        f'{_POM}, layer "Aerial imagery, 1940s". Photos: Royal Air Force, via the Hebrew University of Jerusalem; '
+        "georeferenced by Shaul Holtzman.",
+    ),
+)
 # Haifa's neighbourhood plans reach ~1.6 km² (חפ/421); city-wide ones start around 6 km².
 HAIFA_MAX_PLAN_AREA_M2 = 2_000_000

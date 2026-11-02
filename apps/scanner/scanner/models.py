@@ -89,6 +89,7 @@ class HistoricMap(BaseModel):
     zoom_min: int = 0
     zoom_max: int = 20
     thumbnail: str | None = None
+    credit: str | None = None  # source and rights text, printed under the image and kept as the document's note
 
 
 class Document(BaseModel):

@@ -269,6 +269,73 @@ def test_mapwarper_coverage():
     assert mapwarper.maps_at(32.7600, 35.0200) == []  # Carmel ridge, outside every map
 
 
+def test_palopenmaps_name_their_source_and_unknown_rights():
+    maps = haifa_scan.haifa_maps(32.7600, 35.0200)  # Carmel: Palestine Open Maps only
+    assert [m.map_id for m in maps] == ["pal63k-1880", "pal-1940s", "pal20k-1940s", "aerial1940s"]  # oldest first
+    for m in maps:
+        assert m.credit and "Palestine Open Maps (palopenmaps.org), layer" in m.credit
+        assert m.credit.endswith(config.PALOPENMAPS_RIGHTS) and "Publishing rights unknown" in m.credit
+        assert haifa_scan.map_link(m) == "https://palopenmaps.org/"
+    by_id = {m.map_id: m.credit or "" for m in maps}
+    assert "Survey of Palestine. Scan: National Library of Israel" in by_id["pal-1940s"]
+    assert "Royal Air Force" in by_id["aerial1940s"] and "Shaul Holtzman" in by_id["aerial1940s"]
+    assert "Palestine Exploration Fund" in by_id["pal63k-1880"]
+    # Downtown also keeps the mapwarper maps, which carry no credit of their own.
+    downtown = haifa_scan.haifa_maps(32.8186, 34.9899)
+    assert any(m.folder == "mapwarper" and m.credit is None for m in downtown)
+
+
+def test_map_caption_is_printed_under_the_image():
+    from PIL import Image
+
+    from scanner.sources import mapjunction
+
+    canvas = Image.new("RGB", (1024, 1024), (200, 220, 240))
+    out = mapjunction._with_caption(canvas, "Source: " + "word " * 60 + config.PALOPENMAPS_RIGHTS)
+    assert out.width == 1024 and out.height > 1024 + 40  # wrapped onto several lines
+    strip = out.crop((0, 1024, 1024, out.height))
+    assert strip.getextrema() != ((255, 255), (255, 255), (255, 255))  # text was drawn
+
+
+def test_credited_maps_reach_prompts_and_slides(tmp_path):
+    from PIL import Image
+
+    from scanner.models import Document
+    from scanner.pipeline import write_outputs
+    from scanner.render import prompts
+
+    manifest = _manifest(tmp_path)
+    assert "publishing rights are unknown" not in prompts.prompt_en(manifest)
+    credit = haifa_scan.haifa_maps(32.76, 35.02)[1].credit
+    (tmp_path / "maps").mkdir()
+    Image.new("RGB", (64, 64)).save(tmp_path / "maps" / "M-001.jpg")
+    manifest.documents.append(
+        Document(
+            doc_id="M-001",
+            source="map",
+            title="City map",
+            file="maps/M-001.jpg",
+            page_images=["maps/M-001.jpg"],
+            original_url="https://palopenmaps.org/",
+            note=credit,
+            pages=1,
+        )
+    )
+    assert "publishing rights are unknown" in prompts.prompt_en(manifest)
+    assert "זכויות הפרסום שלהן אינן ידועות" in prompts.prompt_he(manifest)
+    write_outputs(manifest, tmp_path)
+    assert "Publishing rights unknown" in (tmp_path / "index.csv").read_text(encoding="utf-8-sig")
+    from pptx import Presentation
+
+    texts = [
+        shape.text_frame.text
+        for slide in Presentation(str(tmp_path / "maps_plans.pptx")).slides
+        for shape in slide.shapes
+        if shape.has_text_frame
+    ]
+    assert any("Palestine Open Maps" in t and "Publishing rights unknown" in t for t in texts)
+
+
 def test_building_key():
     assert Building(building_id=2287, x=0, y=0, lat=0, lon=0).key == "tel-aviv:2287"
     assert (

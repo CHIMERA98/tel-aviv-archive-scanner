@@ -76,6 +76,7 @@ async def render_maps(
                 file=rel,
                 pages=1,
                 page_images=[rel],
+                note=historic.credit,
             )
         )
     return docs

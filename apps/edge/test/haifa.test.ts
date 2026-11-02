@@ -126,7 +126,9 @@ describe("haifa", () => {
 
     const first = await next();
     expect(first).toMatchObject({ kind: "scan", scan_id: scanId, interval_s: 12 });
-    const manifest = new TextEncoder().encode(JSON.stringify({ documents: [] }));
+    const manifest = new TextEncoder().encode(
+      JSON.stringify({ city: "haifa", address: haifaAddress(51), building: {}, plans: [], warnings: [], documents: [] }),
+    );
     expect((await signed("PUT", `/internal/scans/${scanId}/files/manifest.json`, manifest)).status).toBe(200);
     expect((await deliver(scanId, ["A-002", "A-003", "A-004"])).status).toBe(200);
 
@@ -135,6 +137,10 @@ describe("haifa", () => {
     let scan = await json<{ status: string; documents: { total: number; ready: number; pending: number } }>(await call(`/api/scans/${scanId}`));
     expect(scan.status).toBe("filling");
     expect(scan.documents).toEqual({ total: 4, ready: 1, pending: 3 });
+    // The page for AIs says the list is partial, and isn't cached while it fills.
+    let aiPage = await call(`/en/scan/${scanId}/ai`);
+    expect(aiPage.headers.get("cache-control")).toBe("no-store");
+    expect(await aiPage.text()).toContain("This list is still partial: 1 of 4 documents have arrived so far");
 
     // The worker reads the manifest back through the edge.
     expect((await signed("GET", `/internal/scans/${scanId}/files/manifest.json`)).status).toBe(200);
@@ -158,6 +164,8 @@ describe("haifa", () => {
     expect(scan.status).toBe("done");
     // The final summary already counts the queued documents; they are not added again.
     expect(scan.documents).toEqual({ total: 4, ready: 4, pending: 0 });
+    aiPage = await call(`/en/scan/${scanId}/ai`);
+    expect(await aiPage.text()).not.toContain("still partial");
     expect(await next()).toMatchObject({ kind: "idle" });
   });
 

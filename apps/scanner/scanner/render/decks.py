@@ -91,7 +91,10 @@ def _index_slides(prs: PresentationType, heading: str, lines: list[str]) -> None
 
 
 def _map_source(doc: Document) -> str:
-    return "mapwarper.net" if "mapwarper" in (doc.original_url or "") else "MapJunction"
+    url = doc.original_url or ""
+    if "palopenmaps" in url:
+        return "Palestine Open Maps"
+    return "mapwarper.net" if "mapwarper" in url else "MapJunction"
 
 
 def _doc_date(doc: Document) -> str:
@@ -161,20 +164,24 @@ def build_maps_plans_deck(manifest: ScanManifest, root: Path, dest: Path) -> Non
             Inches(0.8),
             [(f"{doc.doc_id} · {doc.year or 'שנה לא ידועה'} · {doc.title}", 22, True)],
         )
+        # A map with its own credit (Palestine Open Maps) gets the full source and rights note under it.
+        credit = [(doc.note, 10, False)] if doc.note else []
+        height = Inches(5.5) if credit else Inches(5.9)
         if doc.page_images:
-            _picture(slide, root / doc.page_images[0], Inches(0.6), Inches(1.15), Inches(12.1), Inches(5.9))
+            _picture(slide, root / doc.page_images[0], Inches(0.6), Inches(1.15), Inches(12.1), height)
         _text(
             slide,
             Inches(0.6),
-            Inches(7.05),
+            Inches(6.7) if credit else Inches(7.05),
             Inches(12.1),
-            Inches(0.4),
+            Inches(0.75) if credit else Inches(0.4),
             [
                 (
                     f"מקור: {_map_source(doc)} · עיגול אדום = המבנה",
                     11,
                     False,
-                )
+                ),
+                *credit,
             ],
             color=MUTED,
         )

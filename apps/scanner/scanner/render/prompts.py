@@ -10,6 +10,29 @@ def _counts(manifest: ScanManifest) -> dict[str, int]:
     return counts
 
 
+def _credited_maps(manifest: ScanManifest) -> bool:
+    return any(d.source == "map" and d.note for d in manifest.documents)
+
+
+def _map_rights_en(manifest: ScanManifest) -> str:
+    if not _credited_maps(manifest):
+        return ""
+    return (
+        "\n  Maps from Palestine Open Maps carry their exact source in the `note` column and under the image;\n"
+        "  their publishing rights are unknown. Name that source whenever you use or show one, and don't suggest\n"
+        "  republishing it."
+    )
+
+
+def _map_rights_he(manifest: ScanManifest) -> str:
+    if not _credited_maps(manifest):
+        return ""
+    return (
+        "\n  למפות מ-Palestine Open Maps יש מקור מדויק בעמודת `note` ומתחת לתמונה, וזכויות הפרסום שלהן אינן ידועות.\n"
+        "  ציין/י את המקור בכל פעם שמשתמשים במפה כזו או מציגים אותה, ואל תציע/י לפרסם אותה."
+    )
+
+
 def _pending(manifest: ScanManifest) -> int:
     return sum(1 for d in manifest.documents if d.status == "pending")
 
@@ -142,7 +165,7 @@ def prompt_en(manifest: ScanManifest) -> str:
   numbers, plan number and status, page count, file path and original link. **Read it first.**
 {_archive_en(manifest, c)}
 - `plans/` — {c["plan"]} files from the {len(manifest.plans)} zoning plans (תב"ע) that cover the building.
-- `maps/` — {c["map"]} historic maps cropped around the building (red circle = the building).
+- `maps/` — {c["map"]} historic maps cropped around the building (red circle = the building).{_map_rights_en(manifest)}
 
 {_facts_en(manifest)}
 
@@ -176,7 +199,7 @@ def prompt_he(manifest: ScanManifest) -> str:
   מספר תב"ע וסטטוס, מספר עמודים, נתיב הקובץ וקישור למקור. **קרא/י אותו קודם.**
 {_archive_he(manifest, c)}
 - `plans/` — {c["plan"]} קבצים מתוך {len(manifest.plans)} תוכניות בניין עיר (תב"ע) החלות על המבנה.
-- `maps/` — {c["map"]} מפות היסטוריות חתוכות סביב המבנה (עיגול אדום = המבנה).
+- `maps/` — {c["map"]} מפות היסטוריות חתוכות סביב המבנה (עיגול אדום = המבנה).{_map_rights_he(manifest)}
 
 {_facts_he(manifest)}
 

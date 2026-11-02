@@ -4,7 +4,7 @@ import asyncio
 import io
 import math
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 from scanner import config
 from scanner.geo import tile_float
@@ -126,7 +126,31 @@ async def _render_at(fetcher: Fetcher, historic: HistoricMap, lat: float, lon: f
     draw = ImageDraw.Draw(canvas)
     for radius, width in ((16, 5), (4, 4)):
         draw.ellipse((px - radius, py - radius, px + radius, py + radius), outline=(220, 30, 30), width=width)
+    if historic.credit:
+        canvas = _with_caption(canvas, historic.credit)
 
     out = io.BytesIO()
     canvas.save(out, "JPEG", quality=82)
     return out.getvalue()
+
+
+def _with_caption(canvas: Image.Image, text: str) -> Image.Image:
+    """The map with its source printed in a strip underneath, so the credit travels with the image."""
+    size = max(14, canvas.width // 64)
+    font = ImageFont.load_default(size=size)
+    pad = size // 2
+    measure = ImageDraw.Draw(canvas)
+    lines: list[str] = []
+    for word in text.split():
+        trial = f"{lines[-1]} {word}" if lines else word
+        if lines and measure.textlength(trial, font=font) <= canvas.width - 2 * pad:
+            lines[-1] = trial
+        else:
+            lines.append(word)
+    line_height = int(size * 1.3)
+    out = Image.new("RGB", (canvas.width, canvas.height + 2 * pad + line_height * len(lines)), "white")
+    out.paste(canvas, (0, 0))
+    draw = ImageDraw.Draw(out)
+    for i, line in enumerate(lines):
+        draw.text((pad, canvas.height + pad + i * line_height), line, font=font, fill=(60, 60, 60))
+    return out

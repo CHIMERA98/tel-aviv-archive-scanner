@@ -25,6 +25,8 @@ const COPY = {
     requests: (link: string) =>
       `בחיפה כל בקשה להיתר מסוכמת בקובץ requests.md (סוג, שימוש, מבקש ועורך, היתר, אירועים והחלטות ועדה). קראו אותו לפני המסמכים: ${link}`,
     pending: "עדיין לא הורד — הקישור פותח אותו באתר העירייה",
+    mapRights:
+      "חלק מהמפות ההיסטוריות לקוחות מ-Palestine Open Maps. המקור המדויק מופיע בעמודת ההערה ומתחת לתמונה, וזכויות הפרסום שלהן אינן ידועות: ציינו את המקור בכל פעם שאתם משתמשים במפה כזו, ואל תציעו לפרסם אותה.",
     forAi: "הוראות ל-AI שקורא את העמוד",
     instructions: (scanId: string, connect: string, example: string) => [
       "כתבו היסטוריה כרונולוגית של הבניין מתוך המסמכים שבטבלה: הקמה, היתרים, תוספות, שינויי שימוש ותוכניות בניין עיר שחלות עליו.",
@@ -58,6 +60,8 @@ const COPY = {
     requests: (link: string) =>
       `In Haifa every permit request is summarised in requests.md (type, use, applicant and architect, permit, events, committee decisions). Read it before the documents: ${link}`,
     pending: "not downloaded yet — the link opens it on the municipal site",
+    mapRights:
+      "Some historic maps come from Palestine Open Maps. Their exact source is in the note column and under the image, and their publishing rights are unknown: name that source whenever you use such a map, and don't suggest republishing it.",
     forAi: "Instructions for the AI reading this page",
     instructions: (scanId: string, connect: string, example: string) => [
       "Write a chronological history of the building from the documents below: construction, permits, additions, changes of use, and the zoning plans that apply to it.",
@@ -140,6 +144,7 @@ export const aiPage = (lang: Lang) => async (c: Context<AppContext>) => {
     `<h2>${esc(t.forAi)}</h2><ol>${[
       ...(haifa && manifest.requests?.length ? [t.requests(base + "requests.md")] : []),
       ...t.instructions(sourceId, connect, example),
+      ...(manifest.documents.some((d) => d.source === "map" && d.note) ? [t.mapRights] : []),
     ]
       .map((line) => `<li>${esc(line)}</li>`)
       .join("")}</ol>` +

@@ -417,13 +417,15 @@ const results = (scan, name) => {
   // The prompt points at the scan's plain AI page, so it works without installing anything.
   const prompt = encodeURIComponent(t.aiPrompt(`${location.origin}${base}/scan/${scan.id}/ai`, name));
   const counts = scan.summary?.counts;
+  // Haifa, still filling: the buttons work but look unfinished, and say how much an analysis would cover.
+  const d = scan.status === "filling" ? scan.documents || { ready: 0, total: 0 } : null;
   const items = [
     counts ? h("p", {}, t.counts(counts)) : h("p", {}, t.ready),
-    h("div", { class: "actions" },
+    h("div", { class: d ? "actions pending" : "actions" },
       h("a", { class: "button", href: `https://claude.ai/new?q=${prompt}`, target: "_blank", rel: "noopener" }, t.analyzeClaude),
       h("a", { class: "button", href: `https://chatgpt.com/?q=${prompt}`, target: "_blank", rel: "noopener" }, t.analyzeChatGPT)),
-    h("p", { class: "muted small" }, t.analyzeHint),
-    h("p", { class: "muted small" }, t.readPages, " ",
+    h("p", { class: "muted small" }, d ? t.analyzePartial(d.ready, d.total) : t.analyzeHint),
+    h("p", { class: d ? "muted small pending" : "muted small" }, t.readPages, " ",
       h("a", { href: claudeInstallUrl(), target: "_blank", rel: "noopener" }, t.connectClaude), " · ",
       h("a", { href: `${base}/connect`, onclick: (e) => { e.preventDefault(); go(connectStep()); } }, t.otherApps)),
     h("div", { class: "actions quiet" },

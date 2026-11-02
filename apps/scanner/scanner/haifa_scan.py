@@ -17,10 +17,10 @@ from pathlib import Path
 
 from scanner import config
 from scanner.http import Fetcher, FileTooLargeError
-from scanner.models import AddressMatch, Building, Document, PermitRequest, Plan, ScanManifest
+from scanner.models import AddressMatch, Building, Document, HistoricMap, PermitRequest, Plan, ScanManifest
 from scanner.pipeline import Progress, ProgressFn, render_document_pages, render_maps, write_outputs
 from scanner.render import pages
-from scanner.sources import complot, haifa_gis, mapwarper, taba
+from scanner.sources import complot, haifa_gis, mapwarper, palopenmaps, taba
 from scanner.sources.complot import ComplotBlockedError, ComplotClient, DocumentRef
 
 # Download order for request documents: lower first (docs/HAIFA_PLAN.md §3.3).
@@ -183,6 +183,16 @@ async def collect_plans(
     return plans, docs
 
 
+def haifa_maps(lat: float, lon: float) -> list[HistoricMap]:
+    """mapwarper's downtown maps and the Palestine Open Maps layers, oldest first (undated city maps as 1930s)."""
+    found = mapwarper.maps_at(lat, lon) + palopenmaps.maps_at(lat, lon)
+    return sorted(found, key=lambda m: (m.year or 1935, m.title))
+
+
+def map_link(historic: HistoricMap) -> str:
+    return palopenmaps.link(historic) if historic.folder == "palopenmaps" else mapwarper.link(historic)
+
+
 # ---------- the three steps ----------
 
 
@@ -201,7 +211,7 @@ async def first_delivery(
 
     await progress("maps", "running")
     maps_task = asyncio.create_task(
-        render_maps(fetcher, mapwarper.maps_at(building.lat, building.lon), building, root, warnings, mapwarper.link)
+        render_maps(fetcher, haifa_maps(building.lat, building.lon), building, root, warnings, map_link)
     )
 
     try:

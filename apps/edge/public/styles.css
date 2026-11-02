@@ -146,6 +146,9 @@ ul.list button.item:hover { background: var(--soft); }
 .actions.quiet { gap: 6px 16px; font-size: 14px; }
 .actions.quiet a { color: var(--muted); }
 .actions.quiet a:hover { color: var(--fg); }
+/* Haifa scan still filling: still clickable, but visibly not ready yet. */
+.pending .button, p.pending a { opacity: 0.45; }
+.pending .button:hover, .pending .button:focus-visible, p.pending a:hover { opacity: 0.8; }
 .notice { padding: 12px 14px; background: var(--soft); border-radius: var(--radius); margin: 16px 0; font-size: 15px; }
 .notice.bad { color: var(--bad); }
 details { margin: 16px 0; font-size: 14px; color: var(--muted); text-align: start; }

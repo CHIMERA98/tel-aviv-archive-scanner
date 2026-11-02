@@ -63,7 +63,10 @@ const loadScan = (env: Env, id: string) => env.DB.prepare("SELECT * FROM scans W
 // A short, predictable link per document (see /d/ in routes/summary.ts), so an AI can link what it cites.
 export const docLink = (publicUrl: string, scanId: string, docId: string) => `${publicUrl}/d/${scanId}/${docId}`;
 
-export const loadManifest = async (env: Env, scanId: string): Promise<{ manifest: Manifest; sourceId: string } | string> => {
+export const loadManifest = async (
+  env: Env,
+  scanId: string,
+): Promise<{ manifest: Manifest; sourceId: string; arriving: { total: number; ready: number } | null } | string> => {
   const row = await loadScan(env, scanId);
   if (!row) return "Unknown scan_id.";
   const scan = await publicScan({ env }, row);
@@ -73,7 +76,9 @@ export const loadManifest = async (env: Env, scanId: string): Promise<{ manifest
   const sourceId = scan.files_base.split("/")[2];
   const object = await env.FILES.get(`scans/${sourceId}/manifest.json`);
   if (!object) return "The scan's files have expired.";
-  return { manifest: (await object.json()) as Manifest, sourceId };
+  // Haifa, still filling: how many documents have arrived so far.
+  const arriving = scan.status === "filling" ? (scan.documents ?? { total: 0, ready: 0 }) : null;
+  return { manifest: (await object.json()) as Manifest, sourceId, arriving };
 };
 
 const imageFromR2 = async (env: Env, key: string) => {
