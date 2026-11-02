@@ -66,7 +66,7 @@ async def document(edge: EdgeClient, client: ComplotClient, work: dict) -> None:
             await scan.haifa_document(work["doc_id"], doc.status if doc else "failed", doc.pages if doc else 0)
             return
         await haifa_scan.fetch_document(client, doc, root)
-        for rel in [doc.file, *doc.page_images]:
+        for rel in [doc.file, *doc.image_files()]:
             if rel:
                 await scan.upload_file(root / rel, rel)
         (root / "manifest.json").write_text(manifest.model_dump_json(indent=2), encoding="utf-8")

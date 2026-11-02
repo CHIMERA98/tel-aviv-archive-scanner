@@ -18,7 +18,7 @@ from pathlib import Path
 from scanner import config
 from scanner.http import Fetcher, FileTooLargeError
 from scanner.models import AddressMatch, Building, Document, HistoricMap, PermitRequest, Plan, ScanManifest
-from scanner.pipeline import Progress, ProgressFn, render_document_pages, render_maps, write_outputs
+from scanner.pipeline import Progress, ProgressFn, attach_pages, render_document_pages, render_maps, write_outputs
 from scanner.render import pages
 from scanner.sources import complot, haifa_gis, mapwarper, palopenmaps, taba
 from scanner.sources.complot import ComplotBlockedError, ComplotClient, DocumentRef
@@ -120,12 +120,11 @@ async def fetch_document(client: ComplotClient, doc: Document, root: Path) -> Do
     doc.size = path.stat().st_size
     doc.status, doc.note = "ready", None
     try:
-        total, written = await asyncio.to_thread(pages.render_pages, path, root / "pages" / doc.doc_id, doc.doc_id)
+        rendered = await asyncio.to_thread(pages.render_pages, path, root / "pages" / doc.doc_id, doc.doc_id)
     except Exception as err:  # e.g. DWF drawings: keep the file, no page images
         doc.note = f"no page images ({type(err).__name__})"
     else:
-        doc.pages = total
-        doc.page_images = [p.relative_to(root).as_posix() for p in written]
+        attach_pages(doc, rendered, root)
     return doc
 
 

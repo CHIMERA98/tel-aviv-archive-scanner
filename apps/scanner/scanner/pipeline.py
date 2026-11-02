@@ -10,7 +10,7 @@ from pathlib import Path
 
 from scanner import config
 from scanner.http import Fetcher, FileTooLargeError, SourceBlockedError
-from scanner.models import AddressMatch, Building, Document, HistoricMap, Plan, ScanManifest
+from scanner.models import AddressMatch, Building, ContactSheet, Document, HistoricMap, Plan, ScanManifest
 from scanner.render import bundle, decks, index_csv, pages, prompts, requests_md
 from scanner.sources import gis, handasa, mapjunction, taba
 
@@ -183,6 +183,16 @@ async def _collect_archive(
     return folder_no, docs
 
 
+def attach_pages(doc: Document, rendered: pages.RenderedPages, root: Path) -> None:
+    def rel(path: Path) -> str:
+        return path.relative_to(root).as_posix()
+
+    doc.pages = rendered.total
+    doc.page_images = [rel(p) for p in rendered.pages]
+    doc.page_tiles = [[rel(t) for t in tiles] for tiles in rendered.tiles]
+    doc.sheets = [ContactSheet(image=rel(image), cells=cells) for image, cells in rendered.sheets]
+
+
 async def render_document_pages(documents: list[Document], root: Path, warnings: list[str]) -> None:
     slots = asyncio.Semaphore(2)
 
@@ -191,14 +201,13 @@ async def render_document_pages(documents: list[Document], root: Path, warnings:
             return
         async with slots:
             try:
-                total, written = await asyncio.to_thread(
+                rendered = await asyncio.to_thread(
                     pages.render_pages, root / doc.file, root / "pages" / doc.doc_id, doc.doc_id
                 )
             except Exception as err:
                 warnings.append(f"{doc.doc_id}: pages could not be rendered ({err})")
                 return
-        doc.pages = total
-        doc.page_images = [p.relative_to(root).as_posix() for p in written]
+        attach_pages(doc, rendered, root)
 
     await asyncio.gather(*(one(d) for d in documents))
 

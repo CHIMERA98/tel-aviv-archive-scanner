@@ -33,7 +33,7 @@ const COPY = {
     instructions: (scanId: string, connect: string, example: string) => [
       "כתבו היסטוריה כרונולוגית של הבניין מתוך המסמכים שבטבלה: הקמה, היתרים, תוספות, שינויי שימוש ותוכניות בניין עיר שחלות עליו.",
       `ציינו לכל עובדה את מספר המסמך ואת התאריך, ותמיד הפכו את מספר המסמך לקישור כדי שהמשתמש יוכל לפתוח אותו: ${example}. הקישור לכל מסמך בנוי כך, עם מספר המסמך בסוף.`,
-      `רוב המסמכים סרוקים ואין בהם טקסט. אם המחבר "Archive Scanner" זמין לכם, השתמשו ב-get_document_pages עם scan_id ${scanId} כדי לקרוא את הדפים עצמם. אם אתם יכולים לצפות בתמונות, פתחו את קישורי "עמוד 1" (העמודים הבאים: ‎-002.jpg, ‎-003.jpg וכן הלאה).`,
+      `רוב המסמכים סרוקים ואין בהם טקסט. אם המחבר "Archive Scanner" זמין לכם, השתמשו ב-get_document_pages עם scan_id ${scanId} כדי לקרוא את הדפים עצמם, וב-browse_pages כדי לסרוק הרבה עמודים בבת אחת (למשל כדי למצוא תצלומים). אם אתם יכולים לצפות בתמונות, פתחו את קישורי "עמוד 1" (העמודים הבאים: ‎-002.jpg, ‎-003.jpg וכן הלאה) ואת קישורי "תמונות מוקטנות", שמראים את כל עמודי המסמך ברשת אחת.`,
       "אם קראתם רק את הרשימה, ציינו אילו מסקנות מבוססות על כותרות ותאריכים בלבד.",
       `אל תבקשו מהמשתמש להתקין דבר כדי להתחיל. בסוף אפשר לציין פעם אחת שחיבור הסורק מאפשר לקרוא את הדפים הסרוקים: ${connect}`,
     ],
@@ -43,6 +43,7 @@ const COPY = {
     columns: ["מזהה", "תאריך", "סוג", "כותרת", "היתר / תוכנית", "עמודים", "קישורים", "הערה"],
     file: "קובץ",
     page1: "עמוד 1",
+    thumbs: "תמונות מוקטנות",
     original: "מקור",
     open: "פתיחה",
     downloads: "הורדות",
@@ -70,7 +71,7 @@ const COPY = {
     instructions: (scanId: string, connect: string, example: string) => [
       "Write a chronological history of the building from the documents below: construction, permits, additions, changes of use, and the zoning plans that apply to it.",
       `Cite every fact with its document ID and date, and always make the document ID a link so the user can open it: ${example}. Every document's link follows this pattern, with its ID at the end.`,
-      `Most documents are scans without text. If the "Archive Scanner" connector is available to you, use get_document_pages with scan_id ${scanId} to read the pages themselves. If you can view images, open the "page 1" links (later pages end in -002.jpg, -003.jpg and so on).`,
+      `Most documents are scans without text. If the "Archive Scanner" connector is available to you, use get_document_pages with scan_id ${scanId} to read the pages themselves, and browse_pages to skim many pages at once (for example to find photographs). If you can view images, open the "page 1" links (later pages end in -002.jpg, -003.jpg and so on) and the "thumbnails" links, which show every page of a document in one grid.`,
       "If you could only read this list, say which conclusions rest on titles and dates alone.",
       `Don't ask the user to install anything before starting. At the end you may mention once that connecting the scanner lets you read the scanned pages: ${connect}`,
     ],
@@ -80,6 +81,7 @@ const COPY = {
     columns: ["ID", "Date", "Type", "Title", "Permit / plan", "Pages", "Links", "Note"],
     file: "file",
     page1: "page 1",
+    thumbs: "thumbnails",
     original: "source",
     open: "open",
     downloads: "Downloads",
@@ -133,6 +135,7 @@ export const aiPage = (lang: Lang) => async (c: Context<AppContext>) => {
       link(short, short),
       d.file ? link(base + d.file, t.file) : null,
       d.page_images[0] ? link(base + d.page_images[0], t.page1) : null,
+      d.sheets?.[0] ? link(base + d.sheets[0].image, t.thumbs) : null,
       d.original_url ? link(d.original_url, t.original) : null,
     ].filter(Boolean);
     const ref = [d.permit_no, d.plan_no, d.plan_status].filter(Boolean).join(" · ");

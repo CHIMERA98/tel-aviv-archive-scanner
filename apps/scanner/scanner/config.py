@@ -40,6 +40,17 @@ CDN_CONCURRENCY = 12
 PAGE_IMAGE_MAX_EDGE = 1600
 PAGE_IMAGE_JPEG_QUALITY = 72
 MAX_PAGES_PER_DOCUMENT = 60
+# Long sheets are also cut into overlapping tiles so their details (and photos pasted on them) stay readable.
+TILE_MIN_ASPECT = 2.0  # long edge / short edge
+TILE_EDGE = 1600
+TILE_OVERLAP = 160
+TILE_SHORT_EDGE = 1200  # target short edge of a tiled page, when the source has that much detail
+TILE_MIN_GAIN = 1.5  # tile only when tiles are at least this much sharper than the plain page image
+MAX_TILES_PER_PAGE = 12
+# Contact sheets: thumbnail grids of a document's pages and tiles.
+SHEET_THUMB_EDGE = 240
+SHEET_COLUMNS = 6
+SHEET_CELLS = 24
 
 # Historic map crops: zoom level and how many tiles across.
 MAP_ZOOM = 18

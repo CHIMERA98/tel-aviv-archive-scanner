@@ -92,6 +92,13 @@ class HistoricMap(BaseModel):
     credit: str | None = None  # source and rights text, printed under the image and kept as the document's note
 
 
+class ContactSheet(BaseModel):
+    """A grid of thumbnails of a document's pages; `cells` label them in reading order (p3, or p3.t2 for a tile)."""
+
+    image: str
+    cells: list[str]
+
+
 class Document(BaseModel):
     """One row of index.csv / one item the AI can open."""
 
@@ -109,11 +116,17 @@ class Document(BaseModel):
     file: str | None = None  # path inside the scan folder
     pages: int = 0
     page_images: list[str] = Field(default_factory=list)
+    page_tiles: list[list[str]] = Field(default_factory=list)  # per page image: tiles of a long sheet, or []
+    sheets: list[ContactSheet] = Field(default_factory=list)
     note: str | None = None
     status: DocumentStatus = "ready"  # Haifa documents start "pending" and arrive in the background
     size: int | None = None  # bytes of `file`, when known
     guid: str | None = None  # Haifa: Complot document id
     priority: int = 0  # Haifa: download order, lower first
+
+    def image_files(self) -> list[str]:
+        """Every rendered image: pages, tiles and contact sheets."""
+        return [*self.page_images, *(t for tiles in self.page_tiles for t in tiles), *(s.image for s in self.sheets)]
 
 
 class PermitEvent(BaseModel):

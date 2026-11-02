@@ -26,6 +26,8 @@ export interface ManifestDocument {
   plan_status: string | null;
   pages: number;
   page_images: string[];
+  page_tiles?: string[][]; // per page image: overlapping tiles of a long sheet, or []
+  sheets?: { image: string; cells: string[] }[]; // thumbnail grids; cells read p3 or p3.t2 (tile 2 of page 3)
   file?: string | null;
   original_url: string | null;
   note: string | null;
@@ -53,9 +55,21 @@ export interface Manifest {
 }
 
 const MAX_PAGES_PER_CALL = 3;
+// browse_pages: stop adding contact sheets once a call holds this many images or thumbnails.
+const MAX_SHEETS_PER_CALL = 6;
+const MAX_CELLS_PER_CALL = 72;
 
 const text = (value: unknown) => ({ content: [{ type: "text" as const, text: typeof value === "string" ? value : JSON.stringify(value, null, 1) }] });
 const fail = (message: string) => ({ ...text(message), isError: true });
+
+type Filters = { source?: ManifestDocument["source"]; year_from?: number; year_to?: number; type_contains?: string };
+
+const matching = (documents: ManifestDocument[], f: Filters) =>
+  documents
+    .filter((d) => !f.source || d.source === f.source)
+    .filter((d) => f.year_from == null || (d.year ?? 0) >= f.year_from)
+    .filter((d) => f.year_to == null || (d.year ?? 9999) <= f.year_to)
+    .filter((d) => !f.type_contains || `${d.doc_type ?? ""} ${d.title}`.includes(f.type_contains));
 
 const loadScan = (env: Env, id: string) => env.DB.prepare("SELECT * FROM scans WHERE id = ?").bind(id).first<ScanRow>();
 
@@ -99,6 +113,9 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
         "Research buildings in Tel Aviv-Yafo and Haifa from public municipal records. Typical flow: find_building → " +
         "start_scan (uses one of the user's 3 weekly scans unless the building was scanned in the last 24h) → poll " +
         "get_scan_status every ~30s → list_documents → get_document_pages for the few documents that matter. " +
+        "To find photographs, renderings or particular drawings, skim with browse_pages (thumbnail grids of every " +
+        "page) instead of opening pages one by one. Long plan sheets are split into tiles; open them with " +
+        "get_document_pages' `tiles`. " +
         "Haifa scans open after ~10–15 minutes (status \"filling\") with every document listed and the key ones " +
         "downloaded; the rest arrive in the background, and asking for a pending one moves it to the front. Haifa " +
         "scans also list every permit request with its events and committee decisions (requests.md). Documents are " +
@@ -190,6 +207,13 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
     },
   );
 
+  const filters = {
+    source: z.enum(["archive", "plan", "map"]).optional(),
+    year_from: z.number().int().optional(),
+    year_to: z.number().int().optional(),
+    type_contains: z.string().max(60).optional(),
+  };
+
   server.registerTool(
     "list_documents",
     {
@@ -197,23 +221,13 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
       description:
         "The scan's index: one row per archive document, plan file or historic map, with type, date, permit/request " +
         "numbers and page count. Start here, then open only what you need.",
-      inputSchema: {
-        scan_id: z.string().regex(/^[0-9a-f]{32}$/),
-        source: z.enum(["archive", "plan", "map"]).optional(),
-        year_from: z.number().int().optional(),
-        year_to: z.number().int().optional(),
-        type_contains: z.string().max(60).optional(),
-      },
+      inputSchema: { scan_id: z.string().regex(/^[0-9a-f]{32}$/), ...filters },
     },
     async ({ scan_id, source, year_from, year_to, type_contains }) => {
       const loaded = await loadManifest(env, scan_id);
       if (typeof loaded === "string") return fail(loaded);
       const { manifest } = loaded;
-      const rows = manifest.documents
-        .filter((d) => !source || d.source === source)
-        .filter((d) => year_from == null || (d.year ?? 0) >= year_from)
-        .filter((d) => year_to == null || (d.year ?? 9999) <= year_to)
-        .filter((d) => !type_contains || `${d.doc_type ?? ""} ${d.title}`.includes(type_contains))
+      const rows = matching(manifest.documents, { source, year_from, year_to, type_contains })
         .map((d) => ({
           doc_id: d.doc_id,
           source: d.source,
@@ -248,17 +262,74 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
   );
 
   server.registerTool(
+    "browse_pages",
+    {
+      title: "Skim pages as thumbnails",
+      description:
+        "Contact sheets: grids of small labelled thumbnails of every page of the matching documents (long sheets " +
+        "appear as their tiles), so you can spot photographs, renderings, maps or particular drawings without " +
+        "opening pages one by one. Cells read p3 (page 3) or p3.t2 (tile 2 of page 3); open what you find with " +
+        "get_document_pages. Pass next_cursor back to continue.",
+      inputSchema: {
+        scan_id: z.string().regex(/^[0-9a-f]{32}$/),
+        doc_ids: z.array(z.string().regex(/^[APM]-\d{3}$/)).max(40).optional(),
+        ...filters,
+        cursor: z.number().int().min(0).optional(),
+      },
+    },
+    async ({ scan_id, doc_ids, source, year_from, year_to, type_contains, cursor }) => {
+      const loaded = await loadManifest(env, scan_id);
+      if (typeof loaded === "string") return fail(loaded);
+      const docs = matching(loaded.manifest.documents, { source, year_from, year_to, type_contains }).filter(
+        (d) => !doc_ids || doc_ids.includes(d.doc_id),
+      );
+      const all = docs.flatMap((d) => (d.sheets ?? []).map((sheet, i, sheets) => ({ doc: d, sheet, i, of: sheets.length })));
+      const start = cursor ?? 0;
+      const picked: typeof all = [];
+      let cells = 0;
+      for (const item of all.slice(start)) {
+        if (picked.length && (picked.length >= MAX_SHEETS_PER_CALL || cells + item.sheet.cells.length > MAX_CELLS_PER_CALL)) break;
+        picked.push(item);
+        cells += item.sheet.cells.length;
+      }
+      const notes: string[] = [];
+      const pending = docs.filter((d) => d.status === "pending").map((d) => d.doc_id);
+      if (pending.length) notes.push(`Still downloading (no thumbnails yet): ${pending.join(", ")}.`);
+      const bare = docs
+        .filter((d) => d.source !== "map" && d.status !== "pending" && d.page_images.length && !d.sheets?.length)
+        .map((d) => d.doc_id);
+      if (bare.length) notes.push(`No thumbnails (open with get_document_pages): ${bare.join(", ")}.`);
+      if (!picked.length) return text(notes.join(" ") || "No thumbnails match.");
+      const next = start + picked.length < all.length ? start + picked.length : null;
+      const content: ({ type: "text"; text: string } | { type: "image"; data: string; mimeType: string })[] = [];
+      for (const { doc, sheet, i, of } of picked) {
+        const image = await imageFromR2(env, `scans/${loaded.sourceId}/${sheet.image}`);
+        if (!image) continue;
+        const label = `${doc.doc_id} · ${doc.doc_type ?? doc.title} · ${doc.date ?? doc.year ?? "undated"}`;
+        content.push({ type: "text", text: `${label} — sheet ${i + 1}/${of}: ${sheet.cells.join(", ")}` }, image);
+      }
+      const footer = [`Showing ${picked.length} of ${all.length} sheets.`, ...notes];
+      if (next != null) footer.push(`More: call again with cursor ${next}.`);
+      content.push({ type: "text", text: footer.join(" ") });
+      return { content };
+    },
+  );
+
+  server.registerTool(
     "get_document_pages",
     {
       title: "Read document pages",
-      description: `Page images of one document (max ${MAX_PAGES_PER_CALL} per call, 1-based). Read them visually.`,
+      description:
+        `Page images of one document (max ${MAX_PAGES_PER_CALL} per call, 1-based). Read them visually. Long plan ` +
+        "sheets are also split into tiles for detail: pass one page in `pages` and the tile numbers in `tiles`.",
       inputSchema: {
         scan_id: z.string().regex(/^[0-9a-f]{32}$/),
         doc_id: z.string().regex(/^[APM]-\d{3}$/),
         pages: z.array(z.number().int().min(1)).min(1).max(MAX_PAGES_PER_CALL).optional(),
+        tiles: z.array(z.number().int().min(1)).min(1).max(MAX_PAGES_PER_CALL).optional(),
       },
     },
-    async ({ scan_id, doc_id, pages }) => {
+    async ({ scan_id, doc_id, pages, tiles }) => {
       const loaded = await loadManifest(env, scan_id);
       if (typeof loaded === "string") return fail(loaded);
       const doc = loaded.manifest.documents.find((d) => d.doc_id === doc_id);
@@ -274,10 +345,29 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
         }
         if (state === "ready") return fail(`${doc_id} just arrived; call list_documents again, then retry.`);
       }
+      const tilesOf = (page: number) => doc.page_tiles?.[page - 1] ?? [];
+      const describe = `${doc_id} · ${doc.doc_type ?? doc.title} · ${doc.date ?? doc.year ?? "undated"}`;
+      const read = (paths: string[]) => Promise.all(paths.map((p) => imageFromR2(env, `scans/${loaded.sourceId}/${p}`)));
+
+      if (tiles) {
+        if (pages && pages.length !== 1) return fail("With `tiles`, pass exactly one page in `pages`.");
+        const page = pages?.[0] ?? 1;
+        const available = tilesOf(page);
+        if (!available.length) return fail(`Page ${page} of ${doc_id} has no tiles; read it whole.`);
+        const wanted = tiles.filter((n) => n <= available.length);
+        if (!wanted.length) return fail(`Page ${page} of ${doc_id} has ${available.length} tiles.`);
+        const images = await read(wanted.map((n) => available[n - 1]));
+        const header = `${describe} · page ${page}, tiles ${wanted.join(", ")} of ${available.length} (left to right or top to bottom, overlapping)`;
+        return { content: [{ type: "text" as const, text: header }, ...images.filter((i) => i !== null)] };
+      }
+
       const wanted = (pages ?? [1]).filter((p) => p <= doc.page_images.length);
       if (!wanted.length) return fail(`${doc_id} has ${doc.page_images.length} page image(s).`);
-      const images = await Promise.all(wanted.map((p) => imageFromR2(env, `scans/${loaded.sourceId}/${doc.page_images[p - 1]}`)));
-      const header = `${doc_id} · ${doc.doc_type ?? doc.title} · ${doc.date ?? doc.year ?? "undated"} · pages ${wanted.join(", ")} of ${doc.pages}`;
+      const images = await read(wanted.map((p) => doc.page_images[p - 1]));
+      const tiled = wanted
+        .filter((p) => tilesOf(p).length)
+        .map((p) => `page ${p} is a long sheet in ${tilesOf(p).length} tiles (pages: [${p}], tiles: [1, 2, 3] for detail)`);
+      const header = [`${describe} · pages ${wanted.join(", ")} of ${doc.pages}`, ...tiled].join(" · ");
       return { content: [{ type: "text" as const, text: header }, ...images.filter((i) => i !== null)] };
     },
   );
@@ -299,7 +389,8 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
               `Analyze Archive Scanner scan ${scan_id}. Call list_documents first (for Haifa, also read requests.md). ` +
               "Group documents by date and " +
               "type; identify building permits (היתר בניה), permit requests, plans and correspondence. Open only the " +
-              "documents you need with get_document_pages, earliest permits first. Write a chronological history of " +
+              "documents you need with get_document_pages, earliest permits first; to find photographs of the " +
+              "building, skim with browse_pages. Write a chronological history of " +
               "the building (construction, additions, changes of use, preservation), list key permits with numbers and " +
               "dates, explain the zoning plans that apply, and list open questions. Cite doc_id and date for every claim " +
               `and say when something is unreadable. Answer in ${language === "he" ? "Hebrew" : "English"}.`,
