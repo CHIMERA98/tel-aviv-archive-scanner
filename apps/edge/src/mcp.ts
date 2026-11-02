@@ -59,6 +59,9 @@ const MAX_PAGES_PER_CALL = 3;
 const MAX_SHEETS_PER_CALL = 6;
 const MAX_CELLS_PER_CALL = 72;
 
+// MCP tool annotations. Clients such as ChatGPT ask the user before every call to a tool not marked read-only.
+const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
+
 const text = (value: unknown) => ({ content: [{ type: "text" as const, text: typeof value === "string" ? value : JSON.stringify(value, null, 1) }] });
 const fail = (message: string) => ({ ...text(message), isError: true });
 
@@ -107,20 +110,21 @@ const imageFromR2 = async (env: Env, key: string) => {
 
 export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) => {
   const server = new McpServer(
-    { name: "tel-aviv-archive-scanner", version: "1.1.0" },
+    { name: "tel-aviv-archive-scanner", version: "1.2.0" },
     {
+      // Descriptive, not imperative: AI clients screen server text for wording that steers the model.
       instructions:
-        "Research buildings in Tel Aviv-Yafo and Haifa from public municipal records. Typical flow: find_building → " +
-        "start_scan (uses one of the user's 3 weekly scans unless the building was scanned in the last 24h) → poll " +
-        "get_scan_status every ~30s → list_documents → get_document_pages for the few documents that matter. " +
-        "To find photographs, renderings or particular drawings, skim with browse_pages (thumbnail grids of every " +
-        "page) instead of opening pages one by one. Long plan sheets are split into tiles; open them with " +
-        "get_document_pages' `tiles`. " +
+        "Public municipal building records for Tel Aviv-Yafo and Haifa. Usual order of calls: find_building → " +
+        "start_scan (counts toward the user's 3 weekly scans unless the building was scanned in the last 24h) → " +
+        "get_scan_status (a scan takes minutes; checking every ~30s is enough) → list_documents → " +
+        "get_document_pages for the relevant documents. browse_pages returns thumbnail grids of every page, the " +
+        "quickest way to locate photographs, renderings or particular drawings. Long plan sheets are split into " +
+        "tiles, available through get_document_pages' `tiles`. " +
         "Haifa scans open after ~10–15 minutes (status \"filling\") with every document listed and the key ones " +
-        "downloaded; the rest arrive in the background, and asking for a pending one moves it to the front. Haifa " +
-        "scans also list every permit request with its events and committee decisions (requests.md). Documents are " +
-        "scans (mostly Hebrew, often handwritten); read the images yourself and cite doc_id and date, linking each " +
-        "doc_id to its link so the user can open it.",
+        "downloaded; the rest arrive in the background, and requesting a pending one moves it to the front. Haifa " +
+        "scans also include every permit request with its events and committee decisions (requests.md). Documents " +
+        "are scanned images (mostly Hebrew, often handwritten) without a text layer. Each document has a short " +
+        "`link` that opens it for the user.",
     },
   );
 
@@ -135,6 +139,7 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
         address: z.string().min(3).max(120),
         city: z.enum(["tel-aviv", "haifa"]).optional().describe("Default: Haifa if the address says so, else Tel Aviv"),
       },
+      annotations: READ_ONLY,
     },
     async ({ address, city }) => {
       const where = city ?? detectCity(address, "tel-aviv");
@@ -162,9 +167,12 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
       title: "Start a scan",
       description:
         "Collect historic maps, zoning plans and engineering-archive documents for a building. Pass the `selection` " +
-        "from find_building. Tel Aviv: ~3–10 minutes. Haifa: opens after ~10–15 minutes, then keeps adding " +
-        "documents. Poll get_scan_status.",
+        "from find_building. Uses one of the user's weekly scans unless the building was scanned in the last 24h. " +
+        "Tel Aviv: ~3–10 minutes. Haifa: opens after ~10–15 minutes, then keeps adding documents. Progress is in " +
+        "get_scan_status.",
       inputSchema: { selection: z.string().min(10) },
+      // Not read-only: it spends the user's quota, so a confirmation is right here.
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     async ({ selection }) => {
       const result = await startScan(env, props.userId, selection, "mcp");
@@ -189,6 +197,7 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
       title: "Scan status",
       description: "Progress of a scan: queue position, stages, and when files expire.",
       inputSchema: { scan_id: z.string().regex(/^[0-9a-f]{32}$/) },
+      annotations: READ_ONLY,
     },
     async ({ scan_id }) => {
       const row = await loadScan(env, scan_id);
@@ -220,8 +229,9 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
       title: "List documents",
       description:
         "The scan's index: one row per archive document, plan file or historic map, with type, date, permit/request " +
-        "numbers and page count. Start here, then open only what you need.",
+        "numbers and page count, plus the building's facts and zoning plans. Usually the first call once a scan is done.",
       inputSchema: { scan_id: z.string().regex(/^[0-9a-f]{32}$/), ...filters },
+      annotations: READ_ONLY,
     },
     async ({ scan_id, source, year_from, year_to, type_contains }) => {
       const loaded = await loadManifest(env, scan_id);
@@ -267,15 +277,16 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
       title: "Skim pages as thumbnails",
       description:
         "Contact sheets: grids of small labelled thumbnails of every page of the matching documents (long sheets " +
-        "appear as their tiles), so you can spot photographs, renderings, maps or particular drawings without " +
-        "opening pages one by one. Cells read p3 (page 3) or p3.t2 (tile 2 of page 3); open what you find with " +
-        "get_document_pages. Pass next_cursor back to continue.",
+        "appear as their tiles), for spotting photographs, renderings, maps or particular drawings without " +
+        "opening pages one by one. Cells read p3 (page 3) or p3.t2 (tile 2 of page 3); get_document_pages returns " +
+        "them at full size. Results are paged with `cursor`.",
       inputSchema: {
         scan_id: z.string().regex(/^[0-9a-f]{32}$/),
         doc_ids: z.array(z.string().regex(/^[APM]-\d{3}$/)).max(40).optional(),
         ...filters,
         cursor: z.number().int().min(0).optional(),
       },
+      annotations: READ_ONLY,
     },
     async ({ scan_id, doc_ids, source, year_from, year_to, type_contains, cursor }) => {
       const loaded = await loadManifest(env, scan_id);
@@ -320,14 +331,16 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
     {
       title: "Read document pages",
       description:
-        `Page images of one document (max ${MAX_PAGES_PER_CALL} per call, 1-based). Read them visually. Long plan ` +
-        "sheets are also split into tiles for detail: pass one page in `pages` and the tile numbers in `tiles`.",
+        `Page images of one document (max ${MAX_PAGES_PER_CALL} per call, 1-based). Long plan sheets are also ` +
+        "split into tiles for detail: one page in `pages` plus the tile numbers in `tiles`.",
       inputSchema: {
         scan_id: z.string().regex(/^[0-9a-f]{32}$/),
         doc_id: z.string().regex(/^[APM]-\d{3}$/),
         pages: z.array(z.number().int().min(1)).min(1).max(MAX_PAGES_PER_CALL).optional(),
         tiles: z.array(z.number().int().min(1)).min(1).max(MAX_PAGES_PER_CALL).optional(),
       },
+      // Asking for a pending Haifa document only moves it up the download queue.
+      annotations: READ_ONLY,
     },
     async ({ scan_id, doc_id, pages, tiles }) => {
       const loaded = await loadManifest(env, scan_id);
@@ -340,7 +353,7 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
         if (state === "queued" || state === "limit") {
           return text(
             `${doc_id} is still downloading from the municipal site; it has moved to the front of the queue. ` +
-              "Try again in about a minute, and meanwhile read the documents that are ready.",
+              "It should be ready in about a minute; the documents that are ready can be read meanwhile.",
           );
         }
         if (state === "ready") return fail(`${doc_id} just arrived; call list_documents again, then retry.`);

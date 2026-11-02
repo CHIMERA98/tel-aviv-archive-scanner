@@ -71,6 +71,15 @@ describe("MCP over OAuth", () => {
       "list_documents",
       "start_scan",
     ]);
+    // ChatGPT asks before every call to a tool not marked read-only; only start_scan spends anything.
+    const readOnly = result.tools.filter((t: { annotations?: { readOnlyHint?: boolean } }) => t.annotations?.readOnlyHint);
+    expect(readOnly.map((t: { name: string }) => t.name).sort()).toEqual([
+      "browse_pages",
+      "find_building",
+      "get_document_pages",
+      "get_scan_status",
+      "list_documents",
+    ]);
   });
 
   it("lists documents of a finished scan with filters", async () => {
@@ -134,7 +143,7 @@ describe("MCP over OAuth", () => {
     expect(body).toContain(`>https://scanner.test/d/${SCAN}/A-002</a>`);
 
     const en = await worker.fetch(new Request(`https://scanner.test/en/scan/${SCAN}/ai`), env, ctx);
-    expect(await en.text()).toContain("Instructions for the AI reading this page");
+    expect(await en.text()).toContain("Analysis guidelines");
     const missing = await worker.fetch(new Request(`https://scanner.test/scan/${"c".repeat(32)}/ai`), env, ctx);
     expect(missing.status).toBe(404);
     await waitOnExecutionContext(ctx);

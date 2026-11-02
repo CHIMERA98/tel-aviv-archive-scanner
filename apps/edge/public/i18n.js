@@ -72,7 +72,7 @@ export const STRINGS = {
     docsCount: (n) => `${n} מסמכים`,
     filesDeleted: "הקבצים נמחקו",
     aiPrompt: (url, label) =>
-      `קרא/י את ארכיון הבניין ${label} בכתובת ${url} ופעל/י לפי ההוראות שבעמוד: היסטוריה כרונולוגית של הבניין, עם מספרי מסמכים ותאריכים.`,
+      `קרא/י את ארכיון הבניין ${label} בכתובת ${url} וכתוב/כתבי, לפי ההנחיות לניתוח שבעמוד, היסטוריה כרונולוגית של הבניין עם מספרי מסמכים ותאריכים.`,
     cities: {
       "tel-aviv": {
         title: "סורק הארכיון של תל אביב-יפו",
@@ -166,7 +166,7 @@ export const STRINGS = {
     docsCount: (n) => `${n} documents`,
     filesDeleted: "Files deleted",
     aiPrompt: (url, label) =>
-      `Read the building archive of ${label} at ${url} and follow the instructions on that page: a chronological history of the building, citing document IDs and dates.`,
+      `Read the building archive of ${label} at ${url} and, following the analysis guidelines on that page, write a chronological history of the building, citing document IDs and dates.`,
     cities: {
       "tel-aviv": {
         title: "Tel Aviv-Yafo Archive Scanner",
