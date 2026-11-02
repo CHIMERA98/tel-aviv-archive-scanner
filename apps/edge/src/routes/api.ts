@@ -144,7 +144,7 @@ export const publicScan = async (c: { env: AppContext["Bindings"] }, row: ScanRo
   const source = await sourceScan(c.env, row);
   const position = await queuePosition(c.env, source);
   const summary = source.summary_json ? JSON.parse(source.summary_json) : null;
-  const documents = row.city === "haifa" && summary ? await documentCounts(c.env, source.id, summary) : null;
+  const documents = row.city === "haifa" && summary ? await documentCounts(c.env, source.id, summary, source.status === "done") : null;
   return {
     id: row.id,
     city: row.city,

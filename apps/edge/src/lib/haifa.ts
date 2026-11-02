@@ -230,7 +230,10 @@ export const documentCounts = async (
   env: Env,
   scanId: string,
   summary: { documents_total?: number; documents_ready?: number } | null,
+  done = false,
 ): Promise<{ total: number; ready: number; pending: number }> => {
+  // The finished scan's summary already counts every document the queue fetched.
+  if (done) return { total: summary?.documents_total ?? 0, ready: summary?.documents_ready ?? 0, pending: 0 };
   const row = await env.DB.prepare(
     "SELECT SUM(status = 'ready') AS ready, SUM(status = 'pending') AS pending FROM haifa_documents WHERE scan_id = ?",
   )

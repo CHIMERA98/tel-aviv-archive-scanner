@@ -152,9 +152,12 @@ describe("haifa", () => {
 
     // Nothing pending: finish, then done with a 24 h expiry.
     expect(await next()).toMatchObject({ kind: "finish", scan_id: scanId });
-    expect((await signed("POST", `/internal/scans/${scanId}/done`, JSON.stringify({ counts: {} }))).status).toBe(200);
+    const final = { counts: {}, documents_total: 4, documents_ready: 4 };
+    expect((await signed("POST", `/internal/scans/${scanId}/done`, JSON.stringify(final))).status).toBe(200);
     scan = await json(await call(`/api/scans/${scanId}`));
     expect(scan.status).toBe("done");
+    // The final summary already counts the queued documents; they are not added again.
+    expect(scan.documents).toEqual({ total: 4, ready: 4, pending: 0 });
     expect(await next()).toMatchObject({ kind: "idle" });
   });
 
