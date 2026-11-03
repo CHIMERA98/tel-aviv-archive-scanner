@@ -115,6 +115,49 @@ async def test_client_caches_pages(tmp_path):
     assert len(building_file.requests) == 8
 
 
+def test_building_file_addresses_and_batch_files():
+    batch = complot.parse_building_file(page("tik_file_20160039_batch.html"), "20160039")
+    assert len(batch.addresses) == 58 and batch.addresses[5] == "רח' שז\"ר זלמן 13 חיפה"
+    assert batch.is_batch()
+    single = complot.parse_building_file(page("tik_file_20130857.html"), "20130857")
+    assert single.addresses == ["שד' בן גוריון 50 חיפה"] and not single.is_batch()
+    corner = complot.BuildingFile("1", [], ["דר' חנקין 40 חיפה", "דר' חנקין 56 חיפה", "רח' בת חן 1 חיפה"])
+    assert corner.streets == {"דר' חנקין", "רח' בת חן"} and not corner.is_batch()
+
+
+@respx.mock
+async def test_batch_files_are_listed_but_not_opened(tmp_path):
+    respx.get(url__regex=r"prgname=GetTikimByAddress&").mock(
+        return_value=httpx.Response(200, text=page("tikim_by_address_bengurion10.html"))
+    )
+    respx.get(url__regex=r"prgname=GetTikFile&siteid=16&t=334477&").mock(
+        return_value=httpx.Response(200, text=page("tik_file_20160039_batch.html"))
+    )
+    respx.get(url__regex=r"prgname=GetTikFile&").mock(
+        return_value=httpx.Response(200, text=page("tik_file_20130857.html"))
+    )
+    requests = respx.get(url__regex=r"prgname=GetBakashaFile&").mock(
+        return_value=httpx.Response(200, text=page("request_2013085707.html"))
+    )
+    address = AddressMatch(
+        city="haifa",
+        street_code=399,
+        street_he="בן גוריון",
+        house_number=10,
+        label_he="בן גוריון 10",
+        lat=0,
+        lon=0,
+        x=0,
+        y=0,
+    )
+    warnings: list[str] = []
+    async with ComplotClient(LocalCache(tmp_path), interval=0) as client:
+        files, found, _ = await haifa_scan.collect_requests(client, address, warnings)
+    assert files == ["345544", "482776"]
+    assert len(found) == 8 and requests.call_count == 8  # only the ordinary file's requests, each once
+    assert len(warnings) == 1 and "334477 covers 58 addresses" in warnings[0] and 'פז גז בע"מ' in warnings[0]
+
+
 @respx.mock
 async def test_client_never_retries_a_block(tmp_path):
     route = respx.get(url__startswith=config.COMPLOT_PAGES).mock(return_value=httpx.Response(429))

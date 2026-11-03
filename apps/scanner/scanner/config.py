@@ -77,6 +77,9 @@ COMPLOT_CITY_CODE = 4000
 COMPLOT_INTERVAL_S = 18.0  # default gap between page calls; the edge can raise it after a block
 # A first delivery downloads at most this many documents before the scan opens; the rest arrive in the background.
 HAIFA_FIRST_DELIVERY_DOCS = 15
+# A building file whose addresses span more streets than this is a city-wide batch file (e.g. a gas company's tanks
+# at 58 addresses): its requests aren't about this building, so they aren't opened.
+HAIFA_BATCH_FILE_STREETS = 5
 # Haifa permit plans reach 70 MB each. Larger files stay downloadable one by one but are left out of bundle.zip,
 # which keeps the ZIP usable and the worker's in-memory disk bounded.
 HAIFA_BUNDLE_MAX_FILE_BYTES = 25 * 1024 * 1024

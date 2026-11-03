@@ -58,15 +58,30 @@ def _year(value: date | None) -> int | None:
 
 
 async def collect_requests(
-    client: ComplotClient, address: AddressMatch
+    client: ComplotClient, address: AddressMatch, warnings: list[str], progress: Progress | None = None
 ) -> tuple[list[str], list[PermitRequest], list[tuple[PermitRequest, DocumentRef]]]:
-    """Building files at the address, every permit request in them, and every document of those requests."""
+    """Building files at the address, every permit request in them, and every document of those requests.
+
+    A city-wide batch file (one applicant's works at dozens of addresses) is listed in the warnings but not opened:
+    its requests are about other buildings, and opening them costs one Complot call each.
+    """
     files = await client.building_files(address.street_code, address.house_number)
     requests: list[PermitRequest] = []
     documents: list[tuple[PermitRequest, DocumentRef]] = []
     seen: set[str] = set()
+    kept: list[str] = []
     for ref in files:
         building_file = await client.building_file(ref.number)
+        if building_file.is_batch():
+            applicants = sorted({r.applicant for r in building_file.requests if r.applicant})
+            warnings.append(
+                f"Building file {ref.number} covers {len(building_file.addresses)} addresses across the city"
+                + (f" ({', '.join(applicants[:3])})" if applicants else "")
+                + f", so its {len(building_file.requests)} requests weren't opened: "
+                + complot.page_url("GetTikFile", t=ref.number)
+            )
+            continue
+        kept.append(ref.number)
         for request_ref in building_file.requests:
             if request_ref.request_no in seen:
                 continue
@@ -77,7 +92,9 @@ async def collect_requests(
             request.permit_date = request.permit_date or request_ref.permit_date
             requests.append(request)
             documents += [(request, doc) for doc in docs]
-    return [f.number for f in files], requests, documents
+            if progress:
+                await progress("archive", "running", f"{len(requests)} requests read")
+    return kept, requests, documents
 
 
 def archive_documents(entries: list[tuple[PermitRequest, DocumentRef]]) -> list[Document]:
@@ -226,7 +243,7 @@ async def first_delivery(
 
     try:
         await progress("archive", "running", "building files and permit requests")
-        building_files, requests, entries = await collect_requests(client, address)
+        building_files, requests, entries = await collect_requests(client, address, warnings, progress)
         documents = archive_documents(entries)
         await progress("archive", "running", f"{len(requests)} requests, {len(documents)} documents")
 

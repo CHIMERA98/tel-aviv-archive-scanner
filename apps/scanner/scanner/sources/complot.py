@@ -14,6 +14,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
+from html import unescape
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Protocol
@@ -214,6 +215,15 @@ class RequestRef:
 class BuildingFile:
     number: str
     requests: list[RequestRef]
+    addresses: list[str] = field(default_factory=list)
+
+    @property
+    def streets(self) -> set[str]:
+        """Street names without the house number and city: "רח' הגפן 4 חיפה" -> "רח' הגפן"."""
+        return {re.sub(r"\s+\d+\S*(\s+חיפה)?$", "", a.removesuffix(" חיפה")) for a in self.addresses}
+
+    def is_batch(self) -> bool:
+        return len(self.streets) > config.HAIFA_BATCH_FILE_STREETS
 
 
 @dataclass(frozen=True)
@@ -286,7 +296,11 @@ def parse_building_file(html: str, number: str) -> BuildingFile:
                 )
             )
         break
-    return BuildingFile(number=number, requests=requests)
+    # The address list is a headerless one-column table under id="addresses".
+    section = re.search(r'id="addresses".*?</table>', html, re.S)
+    cells = re.findall(r"<td[^>]*>(.*?)</td>", section.group(0), re.S) if section else []
+    addresses = [text for c in cells if (text := _clean(unescape(re.sub(r"<[^>]+>", " ", c))))]
+    return BuildingFile(number=number, requests=requests, addresses=addresses)
 
 
 def parse_request(html: str, request_no: str, building_file: str) -> tuple[PermitRequest, list[DocumentRef]]:
