@@ -4,7 +4,7 @@ Collects, for one building, historic maps, zoning plans and engineering-archive 
 page images, `PROMPT.he.md` / `PROMPT.en.md`, two PowerPoint decks and `bundle.zip`.
 
 - **Tel Aviv-Yafo:** MapJunction, GIS layer 528 + tabaot documents, the handasa archive (SharePoint search + DocViewer).
-- **Haifa** ([docs/HAIFA_PLAN.md](../../docs/HAIFA_PLAN.md)): Haifa GIS, Complot (building files → permit requests →
+- **Haifa:** Haifa GIS, Complot (building files → permit requests →
   documents, plus plan pages), mapwarper.net maps, and `requests.md`. Complot blocks IPs that call it too often, so
   every Complot call goes through one paced, cached client and a 429 is never retried.
 

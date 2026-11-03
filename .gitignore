@@ -25,3 +25,6 @@ scans/
 
 # iCloud-excluded copies of installed packages (the plain names are symlinks)
 *.nosync
+
+# Internal planning notes (kept locally, not published)
+docs/
