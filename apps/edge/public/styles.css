@@ -64,6 +64,9 @@ main#app { min-height: 100svh; display: flex; flex-direction: column; padding: 0
 }
 .view { text-align: center; }
 footer { text-align: center; padding: 24px 0 32px; font-size: 13px; }
+footer .credit { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 4px 12px; margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+footer .credit a { display: inline-flex; padding: 2px; }
+footer .credit svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ---------- step arrows: fixed at the screen's sides, so they never move between steps ---------- */
 nav.steps {
