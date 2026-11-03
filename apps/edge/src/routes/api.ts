@@ -181,7 +181,7 @@ export const startScan = async (
     return { ok: true, scanId: await createScan(env, userId, selection, origin, reusable), reused: true };
   }
   const quota = await quotaState(env, userId);
-  if (quota.weeklyLeft <= 0) return { ok: false, error: "weekly_quota", status: 429 };
+  if (quota.weeklyLeft !== null && quota.weeklyLeft <= 0) return { ok: false, error: "weekly_quota", status: 429 };
   if (quota.dailyCapReached) return { ok: false, error: "daily_cap", status: 503 };
   return { ok: true, scanId: await createScan(env, userId, selection, origin, null), reused: false };
 };

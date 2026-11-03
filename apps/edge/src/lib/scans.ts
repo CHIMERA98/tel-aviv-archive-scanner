@@ -46,14 +46,22 @@ const MAX_ATTEMPTS = 2;
 
 export const quotaState = async (env: Env, userId: string) => {
   const t = now();
-  const [mine, all] = await env.DB.batch([
+  const [mine, all, user] = await env.DB.batch([
     env.DB.prepare("SELECT COUNT(*) AS n, MIN(created_at) AS first FROM quota_events WHERE user_id = ? AND created_at > ?").bind(userId, t - WEEK_S),
-    env.DB.prepare("SELECT COUNT(*) AS n FROM quota_events WHERE created_at > ?").bind(t - DAY_S),
+    // Unlimited accounts' scans don't use up the shared daily cap either.
+    env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM quota_events q JOIN users u ON u.id = q.user_id WHERE q.created_at > ? AND u.unlimited = 0",
+    ).bind(t - DAY_S),
+    env.DB.prepare("SELECT unlimited FROM users WHERE id = ?").bind(userId),
   ]);
   const weekly = num(env.WEEKLY_QUOTA, 3);
   const used = (mine.results[0] as { n: number; first: number | null }) ?? { n: 0, first: null };
   const today = (all.results[0] as { n: number })?.n ?? 0;
+  if ((user.results[0] as { unlimited: number } | undefined)?.unlimited) {
+    return { unlimited: true, weeklyLimit: null, weeklyUsed: used.n, weeklyLeft: null, nextFreeAt: null, dailyCapReached: false };
+  }
   return {
+    unlimited: false,
     weeklyLimit: weekly,
     weeklyUsed: used.n,
     weeklyLeft: Math.max(0, weekly - used.n),

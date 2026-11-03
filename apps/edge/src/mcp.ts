@@ -187,7 +187,7 @@ export const buildServer = (env: Env, ctx: ExecutionContext, props: McpProps) =>
       }
       if (!result.reused) ctx.waitUntil(dispatch(env));
       const quota = await quotaState(env, props.userId);
-      return text({ scan_id: result.scanId, reused_recent_scan: result.reused, scans_left_this_week: quota.weeklyLeft });
+      return text({ scan_id: result.scanId, reused_recent_scan: result.reused, scans_left_this_week: quota.unlimited ? "unlimited" : quota.weeklyLeft });
     },
   );
 

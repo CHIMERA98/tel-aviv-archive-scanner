@@ -214,7 +214,9 @@ const renderActivity = ({ total, items }) => {
 // ---------- steps: search -> choose -> confirm -> sign in -> scan ----------
 
 const quotaLine = (quota) =>
-  quota ? h("p", { class: "muted small" }, quota.weeklyLeft > 0 ? t.quota(quota.weeklyLeft, quota.weeklyLimit) : t.quotaOut) : null;
+  quota && !quota.unlimited
+    ? h("p", { class: "muted small" }, quota.weeklyLeft > 0 ? t.quota(quota.weeklyLeft, quota.weeklyLimit) : t.quotaOut)
+    : null;
 
 const searchStep = () => {
   const input = h("input", { type: "text", name: "q", placeholder: c.placeholder, autocomplete: "street-address", "aria-label": c.placeholder });

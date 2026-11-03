@@ -195,6 +195,20 @@ describe("scans", () => {
     expect(me.quota.weeklyLeft).toBe(3);
   });
 
+  it("lets an unlimited account scan past the weekly quota", async () => {
+    const cookie = await signIn("office@example.com");
+    await testEnv.DB.prepare("UPDATE users SET unlimited = 1 WHERE email = 'office@example.com'").run();
+    for (const n of [501, 502, 503, 504, 505]) expect((await startScan(cookie, await lookupSelection(n))).status).toBe(200);
+    const me = (await (await call("/api/me", { headers: { cookie } })).json()) as { quota: { unlimited: boolean } };
+    expect(me.quota.unlimited).toBe(true);
+    // Their scans don't count toward the shared daily cap.
+    const other = await signIn("after-office@example.com");
+    const theirs = (await (await call("/api/me", { headers: { cookie: other } })).json()) as {
+      quota: { unlimited: boolean; weeklyLeft: number; dailyCapReached: boolean };
+    };
+    expect(theirs.quota).toMatchObject({ unlimited: false, weeklyLeft: 3, dailyCapReached: false });
+  });
+
   it("never runs more than two scans at once", async () => {
     const cookie = await signIn("concurrency@example.com");
     for (const n of [201, 202, 203]) await startScan(cookie, await lookupSelection(n));
