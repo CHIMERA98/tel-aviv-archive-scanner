@@ -29,6 +29,7 @@
   }
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
@@ -45,25 +46,28 @@ p { margin: 0 0 12px; }
 input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 
 /* ---------- page: a top bar, one centered step, the activity list ---------- */
-main#app { min-height: 100svh; display: flex; flex-direction: column; padding: 0 16px; }
+/* The page is exactly one screen tall and never scrolls; a step taller than its space scrolls inside .center. */
+main#app { height: 100svh; display: flex; flex-direction: column; padding: 0 16px; overflow: hidden; }
 .topbar { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 20px 4px; font-size: 13px; }
 .topbar .brand { font-weight: 600; text-decoration: none; }
 .topbar nav { display: flex; gap: 16px; }
 .topbar nav a, footer a { color: var(--muted); text-decoration: none; }
 .topbar nav a:hover, footer a:hover { color: var(--fg); }
 .center {
-  flex: 1;
-  min-height: 60svh;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   width: 100%;
   max-width: var(--column);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 32px 0;
+  padding: 24px 0;
 }
+/* Centers the step while it fits, without cutting off its top once it doesn't (unlike justify-content: center). */
+.center::before, .center::after { content: ""; flex: 1 0 0; }
 .view { text-align: center; }
-footer { text-align: center; padding: 24px 0 32px; font-size: 13px; }
+footer { flex: none; text-align: center; padding: 16px 0 20px; font-size: 13px; }
 footer .credit { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 4px 12px; margin: 10px 0 0; color: var(--muted); font-size: 12px; }
 footer .credit a { display: inline-flex; padding: 2px; }
 footer .credit svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
@@ -182,10 +186,11 @@ pre { background: var(--soft); padding: 12px; border-radius: var(--radius); over
 @keyframes pulse { 50% { opacity: 0.2; } }
 
 /* ---------- activity ---------- */
-.activity { width: 100%; max-width: var(--column); margin: 0 auto; padding-top: 24px; border-top: 1px solid var(--line); }
+.activity { flex: none; width: 100%; max-width: var(--column); margin: 0 auto; padding-top: 16px; border-top: 1px solid var(--line); }
+.activity > button { margin-top: 4px; }
 .activity h2 { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 4px; }
-.activity ul { list-style: none; padding: 0; margin: 8px 0 0; }
-.activity li a, .activity li div {
+ul.rows { list-style: none; padding: 0; margin: 8px 0 0; }
+.rows li a, .rows li div {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -193,15 +198,42 @@ pre { background: var(--soft); padding: 12px; border-radius: var(--radius); over
   font-size: 14px;
   text-decoration: none;
 }
-.activity li a:hover .address { text-decoration: underline; }
-.activity .address { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.activity .meta { color: var(--muted); font-size: 13px; white-space: nowrap; }
-.activity .expired { color: var(--muted); }
+.rows li a:hover .address { text-decoration: underline; }
+.rows .address { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rows .meta { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.rows .expired { color: var(--muted); }
 .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--faint); }
 .dot.running { background: var(--fg); }
 .dot.queued { background: transparent; border: 1.5px solid var(--muted); }
 .dot.done { background: var(--ok); }
 .dot.filling { background: var(--ok); animation: pulse 1.6s ease-in-out infinite; }
+
+/* Fewer recent scans on shorter screens, so the page still fits; the rest are in the dialog. */
+@media (max-height: 820px) { .activity .rows li:nth-child(n + 4) { display: none; } }
+@media (max-height: 700px) {
+  .activity .rows li:nth-child(n + 3), .activity > p { display: none; }
+  .center { padding: 12px 0; }
+}
+
+/* ---------- dialogs ---------- */
+dialog {
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(80svh, 720px);
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--fg);
+  box-shadow: 0 8px 40px rgb(0 0 0 / 0.18);
+}
+dialog::backdrop { background: rgb(0 0 0 / 0.45); }
+dialog.prompt { text-align: center; }
+dialog.prompt h2 { font-size: 19px; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.sheet-head h2 { margin: 0; }
+dialog.sheet h3 { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 16px 0 0; }
+dialog.sheet ul.rows + ul.rows { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 4px; }
+dialog.sheet > button { display: block; margin: 12px auto 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .stage.running .state::before, .dot.running { animation: none; }
@@ -210,7 +242,7 @@ pre { background: var(--soft); padding: 12px; border-radius: var(--radius); over
 @media (max-width: 640px) {
   nav.steps { top: auto; bottom: 16px; transform: none; padding: 0 12px; }
   .arrow { background: var(--bg); border: 1px solid var(--line); box-shadow: 0 1px 4px rgb(0 0 0 / 0.08); }
-  footer { padding-bottom: 80px; }
+  footer { padding-bottom: 72px; }
 }
 @media (max-width: 480px) {
   .topbar { flex-direction: column; align-items: center; gap: 8px; }

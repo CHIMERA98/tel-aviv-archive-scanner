@@ -215,6 +215,21 @@ api.get("/scans", async (c) => {
 const activityCacheKey = (env: AppContext["Bindings"]) => new Request(`${env.PUBLIC_URL}/__activity`);
 export const forgetActivity = (env: AppContext["Bindings"]) => caches.default.delete(activityCacheKey(env));
 
+const FINISHED_COLUMNS = "id, city, label_he, label_en, summary_json, finished_at, expires_at";
+type FinishedRow = Pick<ScanRow, "id" | "city" | "label_he" | "label_en" | "summary_json" | "finished_at" | "expires_at">;
+const finishedItem = (row: FinishedRow, t: number) => {
+  const available = (row.expires_at ?? 0) > t;
+  return {
+    id: available ? row.id : null, // expired scans have no files left to open
+    city: row.city,
+    label_he: row.label_he,
+    label_en: row.label_en,
+    status: available ? "done" : "expired",
+    counts: row.summary_json ? (JSON.parse(row.summary_json) as { counts?: unknown }).counts ?? null : null,
+    finished_at: row.finished_at,
+  };
+};
+
 api.get("/activity", async (c) => {
   const cache = caches.default;
   const cacheKey = activityCacheKey(c.env);
@@ -228,7 +243,7 @@ api.get("/activity", async (c) => {
         "WHERE cached_from IS NULL AND status IN ('queued','starting','running','filling') ORDER BY queued_at",
     ),
     c.env.DB.prepare(
-      "SELECT id, city, label_he, label_en, summary_json, finished_at, expires_at FROM scans " +
+      `SELECT ${FINISHED_COLUMNS} FROM scans ` +
         "WHERE cached_from IS NULL AND status IN ('done','expired') ORDER BY finished_at DESC LIMIT 10",
     ),
     c.env.DB.prepare("SELECT COUNT(*) AS n FROM scans WHERE cached_from IS NULL AND status IN ('done','expired')"),
@@ -247,27 +262,36 @@ api.get("/activity", async (c) => {
       stage: Object.entries(stages).find(([, s]) => s.status === "running")?.[0] ?? null,
     };
   });
-  type FinishedRow = Pick<ScanRow, "id" | "city" | "label_he" | "label_en" | "summary_json" | "finished_at" | "expires_at">;
-  const finished = (recent.results as FinishedRow[]).map(
-    (row) => {
-      const available = (row.expires_at ?? 0) > t;
-      return {
-        id: available ? row.id : null, // expired scans have no files left to open
-        city: row.city,
-        label_he: row.label_he,
-        label_en: row.label_en,
-        status: available ? "done" : "expired",
-        counts: row.summary_json ? (JSON.parse(row.summary_json) as { counts?: unknown }).counts ?? null : null,
-        finished_at: row.finished_at,
-      };
-    },
-  );
+  const finished = (recent.results as FinishedRow[]).map((row) => finishedItem(row, t));
   const response = Response.json(
     { total: (total.results[0] as { n: number } | undefined)?.n ?? 0, items: [...running, ...finished] },
     { headers: { "Cache-Control": "public, max-age=10" } },
   );
   c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()));
   return response;
+});
+
+// Every finished scan, newest first, a page at a time (the "all scans" dialog). `before` is the `next` of the last page.
+const HISTORY_PAGE = 50;
+api.get("/history", async (c) => {
+  const [at, id] = (c.req.query("before") ?? "").split(":");
+  const before = Number(at) || Number.MAX_SAFE_INTEGER;
+  const { results } = await c.env.DB.prepare(
+    `SELECT ${FINISHED_COLUMNS} FROM scans WHERE cached_from IS NULL AND status IN ('done','expired') ` +
+      "AND (finished_at < ?1 OR (finished_at = ?1 AND id < ?2)) ORDER BY finished_at DESC, id DESC LIMIT ?3",
+  )
+    .bind(before, id ?? "", HISTORY_PAGE + 1)
+    .all<FinishedRow>();
+  const page = results.slice(0, HISTORY_PAGE);
+  const last = page.at(-1);
+  const t = now();
+  return c.json(
+    {
+      items: page.map((row) => finishedItem(row, t)),
+      next: results.length > HISTORY_PAGE && last ? `${last.finished_at}:${last.id}` : null,
+    },
+    { headers: { "Cache-Control": "public, max-age=30" } },
+  );
 });
 
 // Anyone with the (unguessable) scan link can see it: the contents are public municipal records.

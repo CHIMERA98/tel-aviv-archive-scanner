@@ -236,6 +236,27 @@ describe("scans", () => {
     expect(queued).toEqual(queued.map((_, i) => i + 1));
   });
 
+  it("pages through the full scan history, newest first", async () => {
+    const t = Math.floor(Date.now() / 1000);
+    await testEnv.DB.prepare("INSERT OR IGNORE INTO users (id, email, created_at) VALUES ('hist', 'hist@example.com', ?)").bind(t).run();
+    // 60 finished scans; the 50th and 51st finished in the same second, right at the page break.
+    await testEnv.DB.batch(
+      Array.from({ length: 60 }, (_, i) =>
+        testEnv.DB.prepare(
+          "INSERT INTO scans (id, user_id, city, building_key, address_json, building_json, label_he, label_en, status, " +
+            "queued_at, finished_at, expires_at) VALUES (?, 'hist', 'tel-aviv', ?, '{}', '{}', ?, ?, 'done', ?, ?, ?)",
+        ).bind(`hist${String(i).padStart(28, "0")}`, `tel-aviv:h${i}`, `היסטוריה ${i}`, `History ${i}`, t, t - 1000 - (i === 50 ? 49 : i), t + 86400),
+      ),
+    );
+    const first = (await (await call("/api/history")).json()) as { items: { label_en: string }[]; next: string | null };
+    expect(first.items).toHaveLength(50);
+    expect(first.next).toBeTruthy();
+    const second = (await (await call(`/api/history?before=${encodeURIComponent(first.next!)}`)).json()) as typeof first;
+    const ours = [...first.items, ...second.items].map((i) => i.label_en).filter((l) => l.startsWith("History "));
+    expect(new Set(ours).size).toBe(60); // none lost or repeated across the tie
+    expect(ours[0]).toBe("History 0");
+  });
+
   it("refunds the quota when a scan fails", async () => {
     const cookie = await signIn("refund@example.com");
     const { scanId } = (await (await startScan(cookie, await lookupSelection(301))).json()) as { scanId: string };

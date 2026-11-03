@@ -222,26 +222,74 @@ const loadActivity = async () => {
 };
 document.addEventListener("visibilitychange", () => { if (!document.hidden) loadActivity(); });
 
-const renderActivity = ({ total, items }) => {
-  const row = (item) => {
-    const meta =
-      item.status === "running" ? (item.stage ? t.stages[item.stage] : t.state.running)
-      : item.status === "filling" ? t.stateFilling
-      : item.status === "queued" ? t.inLine(item.position)
-      : item.status === "done" ? [item.counts ? t.docsCount(item.counts.archive) : null, ago(item.finished_at)].filter(Boolean).join(" · ")
-      : `${t.filesDeleted} · ${ago(item.finished_at)}`;
-    const content = [h("span", { class: `dot ${item.status}` }), h("span", { class: "address" }, label(item)), h("span", { class: "meta" }, meta)];
-    return h("li", {}, item.id
-      ? h("a", { href: `${base}/scan/${item.id}`, onclick: (event) => { event.preventDefault(); go(scanStep(item.id)); } }, content)
-      : h("div", { class: "expired" }, content));
+// Haifa labels already end with the city; Tel Aviv ones don't, so the city is added to tell them apart.
+const placeLabel = (item) => (item.city === "haifa" ? label(item) : `${label(item)}, ${t.cityName["tel-aviv"]}`);
+
+const activityRow = (item) => {
+  const meta =
+    item.status === "running" ? (item.stage ? t.stages[item.stage] : t.state.running)
+    : item.status === "filling" ? t.stateFilling
+    : item.status === "queued" ? t.inLine(item.position)
+    : item.status === "done" ? [item.counts ? t.docsCount(item.counts.archive) : null, ago(item.finished_at)].filter(Boolean).join(" · ")
+    : `${t.filesDeleted} · ${ago(item.finished_at)}`;
+  const content = [h("span", { class: `dot ${item.status}` }), h("span", { class: "address" }, placeLabel(item)), h("span", { class: "meta" }, meta)];
+  const open = (event) => {
+    event.preventDefault();
+    document.querySelectorAll("dialog[open]").forEach((d) => d.close());
+    go(scanStep(item.id));
   };
+  return h("li", {}, item.id ? h("a", { href: `${base}/scan/${item.id}`, onclick: open }, content) : h("div", { class: "expired" }, content));
+};
+
+// The page itself never scrolls, so it shows the latest few scans; the rest are in the "all scans" dialog.
+const ACTIVITY_ROWS = 5;
+let activity = { total: 0, items: [] };
+const renderActivity = (data) => {
+  activity = data;
+  const { total, items } = data;
   activityView.replaceChildren(
     ...[
       h("h2", {}, t.activityTitle),
       total ? h("p", { class: "muted small" }, t.scannedTotal(total)) : null,
-      items.length ? h("ul", {}, items.map(row)) : h("p", { class: "muted small" }, t.activityEmpty),
+      items.length ? h("ul", { class: "rows" }, items.slice(0, ACTIVITY_ROWS).map(activityRow)) : h("p", { class: "muted small" }, t.activityEmpty),
+      total ? h("button", { class: "ghost small-button", type: "button", onclick: historyDialog }, t.allScans(total)) : null,
     ].filter(Boolean), // replaceChildren would print null as text
   );
+};
+
+// A modal that closes on Escape, on its close button and on a click outside it, and is removed once closed.
+const openDialog = (className, label, ...children) => {
+  const dialog = h("dialog", { class: className, "aria-label": label }, ...children);
+  dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
+  dialog.addEventListener("close", () => dialog.remove());
+  document.body.append(dialog);
+  dialog.showModal();
+  return dialog;
+};
+
+const historyDialog = () => {
+  const list = h("ul", { class: "rows" });
+  const more = h("button", { class: "ghost small-button", type: "button", hidden: true }, t.historyMore);
+  let next = null;
+  const load = async () => {
+    more.disabled = true;
+    const { ok, data } = await api(`/history${next ? `?before=${encodeURIComponent(next)}` : ""}`);
+    more.disabled = false;
+    if (!ok) return;
+    list.append(...data.items.map(activityRow));
+    next = data.next;
+    more.hidden = !next;
+  };
+  more.addEventListener("click", load);
+  const active = activity.items.filter((item) => !["done", "expired"].includes(item.status));
+  const dialog = openDialog("sheet", t.historyTitle,
+    h("div", { class: "sheet-head" },
+      h("h2", {}, t.historyTitle),
+      h("button", { class: "ghost small-button", type: "button", onclick: () => dialog.close() }, t.close)),
+    active.length ? [h("h3", {}, t.historyActive), h("ul", { class: "rows" }, active.map(activityRow))] : null,
+    list,
+    more);
+  load();
 };
 
 // ---------- steps: search -> choose -> confirm -> sign in -> scan ----------
@@ -250,6 +298,25 @@ const quotaLine = (quota) =>
   quota && !quota.unlimited
     ? h("p", { class: "muted small" }, quota.weeklyLeft > 0 ? t.quota(quota.weeklyLeft, quota.weeklyLimit) : t.quotaOut)
     : null;
+
+const otherCity = city === "haifa" ? "tel-aviv" : "haifa";
+// The other city's name typed after the house number ("…10, חיפה", "…10 Tel Aviv"); group 1 is the address before it.
+const CITY_SUFFIX = {
+  haifa: /^(.*\d[^\s,]*)[\s,]+(?:חיפה|haifa)\s*$/i,
+  "tel-aviv": /^(.*\d[^\s,]*)[\s,]+(?:תל[\s-]?אביב(?:[\s-]*יפו)?|ת"א|יפו|tel[\s-]?aviv(?:[\s-]*(?:yafo|jaffa))?|jaffa|yafo)\s*$/i,
+};
+let carriedQuery = new URLSearchParams(location.search).get("q");
+
+const wrongCityDialog = (q) => {
+  const url = otherCityUrl();
+  const target = `${url}${url.includes("?") ? "&" : "?"}q=${encodeURIComponent(q)}`;
+  const dialog = openDialog("prompt", t.wrongCityTitle(t.cityName[otherCity]),
+    h("h2", {}, t.wrongCityTitle(t.cityName[otherCity])),
+    h("p", { class: "muted" }, t.wrongCityBody(t.cityName[otherCity], t.cityName[city])),
+    h("div", { class: "actions" },
+      h("a", { class: "button", href: target }, t.wrongCityGo(t.otherCity[city])),
+      h("button", { class: "ghost", type: "button", onclick: () => dialog.close() }, t.stayHere)));
+};
 
 const searchStep = () => {
   const input = h("input", { type: "text", name: "q", placeholder: c.placeholder, autocomplete: "street-address", "aria-label": c.placeholder });
@@ -263,21 +330,30 @@ const searchStep = () => {
     if (q.length < 3) return input.focus();
     button.disabled = true;
     button.textContent = t.searching;
-    const { ok, data } = await api(`/lookup?q=${encodeURIComponent(q)}&city=${city}`);
+    const typed = q.match(CITY_SUFFIX[otherCity]);
+    const { ok, data } = typed ? { ok: true, data: null } : await api(`/lookup?q=${encodeURIComponent(q)}&city=${city}`);
+    // Nothing here: maybe the address is in the other city.
+    const elsewhere = typed || (ok && !data.matches?.length && (await api(`/lookup?q=${encodeURIComponent(q)}&city=${otherCity}`)).data?.matches?.length);
     button.disabled = false;
     button.textContent = t.search;
+    if (elsewhere) {
+      note.replaceChildren();
+      return wrongCityDialog(typed ? typed[1] : q);
+    }
     if (!ok) return note.replaceChildren(h("p", { class: "notice bad" }, t.lookupFailed));
     if (!data.matches?.length) return note.replaceChildren(h("p", { class: "notice" }, t.noMatches));
     note.replaceChildren();
     go(data.matches.length === 1 ? confirmStep(data.matches[0]) : chooseStep(data.matches));
   };
 
+  const form = h("form", { class: "row", onsubmit: search }, input, button);
+
   return {
     url: `${base}/`,
     root: view(
       h("h1", {}, c.title),
       h("p", { class: "muted" }, c.intro),
-      h("form", { class: "row", onsubmit: search }, input, button),
+      form,
       quota,
       new URLSearchParams(location.search).get("signin") === "expired" ? h("p", { class: "notice" }, t.signinExpired) : null,
       note,
@@ -285,6 +361,14 @@ const searchStep = () => {
     enter: () => {
       quota.replaceChildren(me.user ? quotaLine(me.quota) : "");
       input.focus();
+      if (carriedQuery) { // sent here by the other city's scanner: search it right away
+        input.value = carriedQuery;
+        carriedQuery = null;
+        const url = new URL(location.href);
+        url.searchParams.delete("q"); // a reload shouldn't search again
+        history.replaceState(history.state, "", url);
+        form.requestSubmit();
+      }
     },
   };
 };
@@ -497,7 +581,7 @@ const myScansStep = () => {
           (data.scans || []).map((s) =>
             h("li", {},
               h("button", { class: "item", type: "button", onclick: () => go(scanStep(s.id)) },
-                h("span", {}, label(s)),
+                h("span", {}, placeLabel(s)),
                 h("span", { class: "muted small" }, t.state[s.status] || s.status))))),
       );
     },
