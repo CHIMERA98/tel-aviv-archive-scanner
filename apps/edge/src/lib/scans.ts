@@ -195,7 +195,12 @@ export const sweep = async (env: Env): Promise<void> => {
     }
   }
   await haifaSweep(env);
-  await env.DB.prepare("UPDATE scans SET status = 'expired' WHERE status = 'done' AND expires_at < ?").bind(t).run();
+  const expiring = await env.DB.prepare(
+    "UPDATE scans SET status = 'expired' WHERE status = 'done' AND expires_at < ? RETURNING id, cached_from",
+  )
+    .bind(t)
+    .all<{ id: string; cached_from: string | null }>();
+  for (const scan of expiring.results) if (!scan.cached_from) await deleteScanFiles(env, scan.id);
   await env.DB.batch([
     env.DB.prepare(
       "DELETE FROM haifa_documents WHERE scan_id IN (SELECT id FROM scans WHERE status IN ('expired','failed'))",
@@ -203,6 +208,19 @@ export const sweep = async (env: Env): Promise<void> => {
     env.DB.prepare("DELETE FROM login_tokens WHERE expires_at < ?").bind(t - DAY_S),
     env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?").bind(t),
   ]);
+};
+
+/**
+ * An expired scan's files go at once. The bucket's lifecycle rule on scans/ is only a backstop: it counts from each
+ * file's upload, and a Haifa scan uploads its first files hours before it is done and its 24 hours begin.
+ */
+export const deleteScanFiles = async (env: Env, scanId: string): Promise<void> => {
+  let cursor: string | undefined;
+  do {
+    const page = await env.FILES.list({ prefix: `scans/${scanId}/`, cursor });
+    if (page.objects.length) await env.FILES.delete(page.objects.map((o) => o.key));
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
 };
 
 /** Mark a scan (and every row reusing it) failed. Refunds quota when it wasn't the user's fault. */

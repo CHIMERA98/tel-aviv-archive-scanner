@@ -1,6 +1,7 @@
 import { createExecutionContext, env, waitOnExecutionContext } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import worker from "../src/index";
+import { sweep } from "../src/lib/scans";
 import { mcpHandler } from "../src/mcp";
 
 const SCAN = "a".repeat(32);
@@ -160,6 +161,28 @@ describe("MCP over OAuth", () => {
     await waitOnExecutionContext(ctx);
     const { result } = await rpc("tools/call", { name: "list_documents", arguments: { scan_id: SCAN } });
     expect(JSON.parse(result.content[0].text).documents[0].link).toBe(`https://scanner.test/d/${SCAN}/A-001`);
+  });
+
+  it("sends a short link to the municipal original when the stored file is gone", async () => {
+    await seedDoneScan();
+    const key = `scans/${SCAN}/manifest.json`;
+    const manifest = (await (await env.FILES.get(key))!.json()) as { documents: { doc_id: string; original_url: string | null }[] };
+    manifest.documents[1].original_url = "https://archive.example/A-002.pdf"; // A-002's page image was never stored
+    await env.FILES.put(key, JSON.stringify(manifest));
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(new Request(`https://scanner.test/d/${SCAN}/A-002`), env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("https://archive.example/A-002.pdf");
+  });
+
+  it("deletes an expired scan's files", async () => {
+    await seedDoneScan();
+    await env.DB.prepare("UPDATE scans SET expires_at = ? WHERE id = ?").bind(Math.floor(Date.now() / 1000) - 60, SCAN).run();
+    await sweep(env);
+    const row = await env.DB.prepare("SELECT status FROM scans WHERE id = ?").bind(SCAN).first<{ status: string }>();
+    expect(row?.status).toBe("expired");
+    expect((await env.FILES.list({ prefix: `scans/${SCAN}/` })).objects).toHaveLength(0);
   });
 
   it("explains when a scan isn't ready", async () => {

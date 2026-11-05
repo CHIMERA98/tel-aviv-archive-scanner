@@ -187,7 +187,9 @@ export const docRedirect = async (c: Context<AppContext>) => {
     if ((await requestDocument(c.env, loaded.sourceId, doc.doc_id)) === "queued") c.executionCtx.waitUntil(dispatch(c.env));
   }
   const path = doc.file ?? doc.page_images[0];
-  const target = path ? `${c.env.PUBLIC_URL}/files/${loaded.sourceId}/${path}` : doc.original_url;
+  // A file that never made it to storage still has its municipal original.
+  const stored = path ? await c.env.FILES.head(`scans/${loaded.sourceId}/${path}`) : null;
+  const target = stored ? `${c.env.PUBLIC_URL}/files/${loaded.sourceId}/${path}` : doc.original_url;
   if (!target) return c.text("This document has no file.", 404);
   return c.redirect(target, 302);
 };
